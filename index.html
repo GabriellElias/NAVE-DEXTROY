@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Nave Espacial 2D Avançado</title>
+    <style>
+        /* CSS do Jogo */
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #000; /* Fundo totalmente preto para o espaço */
+            overflow: hidden; /* Evita barras de rolagem */
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+        }
+
+        canvas {
+            border: 2px solid #00f; /* Borda azul para o canvas */
+            background-color: #000; /* Fundo do jogo (será preenchido pelas estrelas) */
+            cursor: crosshair; /* Cursor de mira */
+        }
+
+        #game-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.2em;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 10; /* Garante que fique acima do canvas */
+        }
+
+        #records-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2em;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+
+        .menu-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border: 3px solid #f00;
+            border-radius: 10px;
+            text-align: center;
+            display: none; /* Escondido por padrão */
+            z-index: 20; /* Garante que fique acima de tudo */
+            max-width: 80%;
+            max-height: 90%;
+            overflow-y: auto;
+        }
+
+        .menu-container h2 {
+            color: #f00;
+            margin-bottom: 20px;
+        }
+
+        .menu-container p {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .menu-container button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px 10px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .menu-container button:hover {
+            background-color: #0056b3;
+        }
+
+        .menu-container button.red-button {
+            background-color: #dc3545;
+        }
+
+        .menu-container button.red-button:hover {
+            background-color: #c82333;
+        }
+
+        #start-menu input[type="text"] {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #00f;
+            background-color: #222;
+            color: #fff;
+            font-size: 1em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .ability-item {
+            text-align: left;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: rgba(20, 20, 20, 0.7);
+        }
+        .ability-item h3 {
+            color: #00f;
+            margin-top: 0;
+        }
+        .ability-item p {
+            font-size: 0.95em;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-info">
+        Vidas: <span id="lives-display">5</span><br>
+        Escudo: <span id="shield-status">Pronto</span><br>
+        Drone: <span id="drone-status">90 Pontos</span><br>
+        Hack: <span id="hack-status">Inativo</span><br>
+        Mina: <span id="mine-status">Inativo</span><br>
+        Slow: <span id="slow-status">Inativo</span><br>
+        Perfurar: <span id="piercing-status">Inativo</span><br>
+        Mísseis: <span id="barrage-status">Inativo</span><br>
+        Abates: <span id="kills-display">0</span><br>
+        Pontos: <span id="score-display">0</span><br>
+        Dificuldade: <span id="difficulty-level">1</span>
+        <button id="abilities-button" style="margin-top: 10px; padding: 5px 10px; font-size: 0.9em;">Habilidades</button>
+        <button id="achievements-button" style="margin-top: 5px; padding: 5px 10px; font-size: 0.9em;">Conquistas</button>
+    </div>
+
+    <div id="records-display">
+        Recorde: <span id="high-score-display">0</span> (<span id="high-score-player-display">N/A</span>)
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="start-menu" class="menu-container">
+        <h2>Bem-vindo ao Jogo de Nave Espacial!</h2>
+        <p>Insira seu nome para começar:</p>
+        <input type="text" id="playerNameInput" placeholder="Seu nome aqui" maxlength="15">
+        <button id="startButton">Iniciar Jogo</button>
+        <button id="view-abilities-start-button">Ver Habilidades</button>
+        <button id="view-achievements-start-button">Ver Conquistas</button>
+    </div>
+
+    <div id="game-over-menu" class="menu-container">
+        <h2>GAME OVER!</h2>
+        <p>Estatísticas do Jogo:</p>
+        <p>Inimigos Abatidos: <span id="final-kills">0</span></p>
+        <p>Pontuação Final: <span id="final-score">0</span></p>
+        <button id="restart-button">Reiniciar</button>
+        <button id="quit-button" class="red-button">Sair</button>
+        <button id="view-abilities-gameover-button">Ver Habilidades</button>
+        <button id="view-achievements-gameover-button">Ver Conquistas</button>
+    </div>
+
+    <div id="abilities-menu" class="menu-container">
+        <h2>Habilidades da Nave</h2>
+        <div class="ability-item">
+            <h3>Escudo (Tecla E)</h3>
+            <p><strong>Descrição:</strong> Cria um campo de força temporário que te torna invulnerável a colisões e tiros inimigos.</p>
+            <p><strong>Duração:</strong> 5 segundos. <strong>Recarga:</strong> 10 segundos.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Drone (Tecla Q)</h3>
+            <p><strong>Descrição:</strong> Invoca dois drones de ataque que atiram automaticamente nos inimigos próximos.</p>
+            <p><strong>Duração:</strong> Permanente até desativar ou coletar outro power-up. <strong>Ativação:</strong> Atingir 90 pontos e coletar power-up ou pressionar Q.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Disparo Automático (Power-Up)</h3>
+            <p><strong>Descrição:</strong> Sua nave atira automaticamente em alta velocidade nos inimigos.</p>
+            <p><strong>Duração:</strong> 3 segundos. <strong>Ativação:</strong> Coletar power-up.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Hack (Power-Up)</h3>
+            <p><strong>Descrição:</strong> Seus próximos 10 tiros se tornam teleguiados, seguindo o inimigo mais próximo.</p>
+            <p><strong>Duração:</strong> 10 tiros. <strong>Ativação:</strong> Coletar power-up.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Mina Espacial (Power-Up)</h3>
+            <p><strong>Descrição:</strong> Lança uma mina flutuante que explode causando dano em área quando inimigos se aproximam.</p>
+            <p><strong>Ativação:</strong> Coletar power-up e pressionar M.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Aceleração Temporal (Power-Up)</h3>
+            <p><strong>Descrição:</strong> Desacelera todos os inimigos e seus projéteis no campo de batalha por um curto período.</p>
+            <p><strong>Duração:</strong> 3 segundos. <strong>Ativação:</strong> Coletar power-up.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Disparo Perfurante (Power-Up)</h3>
+            <p><strong>Descrição:</strong> Seus tiros atravessam múltiplos inimigos, ideal para lidar com enxames.</p>
+            <p><strong>Duração:</strong> 5 segundos. <strong>Ativação:</strong> Coletar power-up.</p>
+        </div>
+        <div class="ability-item">
+            <h3>Chuva de Mísseis (Power-Up)</h3>
+            <p><strong>Descrição:</strong> Lança uma salva de mísseis teleguiados que buscam e destroem múltiplos inimigos.</p>
+            <p><strong>Ativação:</strong> Coletar power-up (efeito instantâneo).</p>
+        </div>
+        <button id="close-abilities-button">Voltar</button>
+    </div>
+
+    <div id="achievements-menu" class="menu-container">
+        <h2>Suas Conquistas</h2>
+        <ul id="achievements-list" style="list-style-type: none; padding: 0;">
+            </ul>
+        <button id="close-achievements-button">Voltar</button>
+    </div>
+
+
+    <script>
+        // JavaScript do Jogo
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Referências para o HUD, Menus e Recordes
+        const livesDisplay = document.getElementById('lives-display');
+        const shieldStatus = document.getElementById('shield-status');
+        const droneStatus = document.getElementById('drone-status');
+        const hackStatus = document.getElementById('hack-status');
+        const mineStatus = document.getElementById('mine-status'); // NOVO: Mina
+        const slowStatus = document.getElementById('slow-status'); // NOVO: Slow
+        const piercingStatus = document.getElementById('piercing-status'); // NOVO: Piercing
+        const barrageStatus = document.getElementById('barrage-status'); // NOVO: Barrage
+        const killsDisplay = document.getElementById('kills-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const difficultyLevelDisplay = document.getElementById('difficulty-level');
+        const gameOverMenu = document.getElementById('game-over-menu');
+        const finalKillsDisplay = document.getElementById('final-kills');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+        const quitButton = document.getElementById('quit-button');
+
+        const startMenu = document.getElementById('start-menu');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const startButton = document.getElementById('startButton');
+
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const highScorePlayerDisplay = document.getElementById('high-score-player-display');
+
+        const abilitiesMenu = document.getElementById('abilities-menu'); // NOVO: Menu de Habilidades
+        const abilitiesButton = document.getElementById('abilities-button'); // NOVO: Botão de Habilidades no HUD
+        const closeAbilitiesButton = document.getElementById('close-abilities-button'); // NOVO: Botão Fechar Habilidades
+        const viewAbilitiesStartButton = document.getElementById('view-abilities-start-button'); // NOVO: Botão Ver Habilidades no Start Menu
+        const viewAbilitiesGameOverButton = document.getElementById('view-abilities-gameover-button'); // NOVO: Botão Ver Habilidades no Game Over Menu
+
+        const achievementsMenu = document.getElementById('achievements-menu'); // NOVO: Menu de Conquistas
+        const achievementsButton = document.getElementById('achievements-button'); // NOVO: Botão de Conquistas no HUD
+        const closeAchievementsButton = document.getElementById('close-achievements-button'); // NOVO: Botão Fechar Conquistas
+        const viewAchievementsStartButton = document.getElementById('view-achievements-start-button'); // NOVO: Botão Ver Conquistas no Start Menu
+        const viewAchievementsGameOverButton = document.getElementById('view-achievements-gameover-button'); // NOVO: Botão Ver Conquistas no Game Over Menu
+        const achievementsList = document.getElementById('achievements-list'); // NOVO: Lista de Conquistas
+
+        // Configurações do Jogo
+        let GAME_WIDTH = window.innerWidth;
+        let GAME_HEIGHT = window.innerHeight;
+
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+
+        const PLAYER_SPEED = 5;
+        const BULLET_SPEED = 7;
+
+        const FPS = 120;
+        const FRAME_INTERVAL = 1000 / FPS;
+        let lastTime = 0;
+
+        // --- Variáveis do Jogador ---
+        let player = {
+            x: GAME_WIDTH / 2,
+            y: GAME_HEIGHT / 2,
+            width: 40,
+            height: 50,
+            lives: 5,
+            isShieldActive: false,
+            shieldDuration: 5000,
+            shieldCooldown: 10000,
+            lastShieldActivationTime: 0,
+            shieldActivationTimer: null,
+            isAutoShotActive: false,
+            autoShotDuration: 3000,
+            autoShotTimer: null,
+            isDroneActive: false,
+            droneCooldown: 90,
+            lastDroneActivationScore: 0,
+            droneShotInterval: 300,
+            isHackActive: false,
+            hackShotsRemaining: 0,
+            currentAngle: -Math.PI / 2,
+            lastMoveTime: 0,
+            hasMineAbility: false, // NOVO: Habilidade de Mina
+            mineCooldown: 5000,
+            lastMineTime: 0,
+            isTimeWarpActive: false, // NOVO: Habilidade Time Warp
+            timeWarpDuration: 3000,
+            timeWarpTimer: null,
+            isPiercingShotActive: false, // NOVO: Habilidade Piercing Shot
+            piercingShotDuration: 5000,
+            piercingShotTimer: null,
+            hasMissileBarrage: false, // NOVO: Habilidade Missile Barrage
+        };
+
+        // --- Estado do Teclado e Mouse ---
+        let keys = {
+            w: false, a: false, s: false, d: false, e: false, q: false, m: false // NOVO: Tecla M para Mina
+        };
+        let mouse = {
+            x: GAME_WIDTH / 2,
+            y: GAME_HEIGHT / 2,
+            isFiring: false,
+            lastShotTime: 0,
+            fireRate: 200
+        };
+
+        // --- Arrays de Objetos do Jogo ---
+        let playerBullets = [];
+        let enemies = [];
+        let enemyBullets = [];
+        let explosions = [];
+        let shrapnelParticles = [];
+        let lifePickups = [];
+        let powerUps = [];
+        let stars = [];
+        let exhaustParticles = [];
+        let drones = [];
+        let mines = []; // NOVO: Minas
+
+        // --- Variáveis de Jogo ---
+        let currentPlayerName = "Jogador Anônimo";
+        let enemiesDestroyed = 0;
+        let score = 0;
+        let difficultyLevel = 1;
+        let gameRunning = false;
+        let lastEnemySpawnTime = 0;
+        let lastPowerUpDropScore = 0;
+        const POWER_UP_DROP_INTERVAL = 90;
+        let lastLifeGainScore = 0;
+        const LIFE_GAIN_SCORE_INTERVAL = 200;
+        const DRONE_DROP_INTERVAL = 200;
+
+        let activeBoss = null; // NOVO: Variável para o Boss
+        let bossSpawnInterval = 10000; // Tempo até o próximo boss (milisegundos)
+        let lastBossSpawnTime = 0;
+        let bossKills = 0; // NOVO: Contador de Bosses derrotados
+
+        // --- Recordes ---
+        let highScore = {
+            score: 0,
+            player: 'N/A'
+        };
+        const HIGH_SCORE_KEY = 'spaceGameHighScore';
+
+        // --- Conquistas ---
+        const ACHIEVEMENTS_KEY = 'spaceGameAchievements';
+        let achievements = {
+            'first_kill': { name: 'Primeiro Abate', achieved: false, description: 'Destrua seu primeiro inimigo.' },
+            '10_kills': { name: 'Dizimador Iniciante', achieved: false, description: 'Destrua 10 inimigos.' },
+            '50_kills': { name: 'Assassino Estelar', achieved: false, description: 'Destrua 50 inimigos.' },
+            '100_kills': { name: 'Mestre da Destruição', achieved: false, description: 'Destrua 100 inimigos.' },
+            'no_damage_1min': { name: 'Intocável', achieved: false, description: 'Sobreviva por 1 minuto sem sofrer dano (após 1º minuto de jogo).' },
+            'score_500': { name: 'Meio Milhão', achieved: false, description: 'Alcance 500 pontos.' },
+            'score_1000': { name: 'Milionário Espacial', achieved: false, description: 'Alcance 1000 pontos.' },
+            'shield_master': { name: 'Mestre do Escudo', achieved: false, description: 'Ative o escudo 5 vezes.' },
+            'drone_pilot': { name: 'Piloto de Drone', achieved: false, description: 'Ative a habilidade de Drone.' },
+            'mine_layer': { name: 'Mineiro Espacial', achieved: false, description: 'Use a Mina Espacial.' },
+            'time_lord': { name: 'Senhor do Tempo', achieved: false, description: 'Ative a Aceleração Temporal.' },
+            'piercing_expert': { name: 'Tiro Perfurante', achieved: false, description: 'Use o Disparo Perfurante.' },
+            'barrage_master': { name: 'Barragem de Mísseis', achieved: false, description: 'Use a Chuva de Mísseis.' },
+            'first_boss_kill': { name: 'Caçador de Gigantes', achieved: false, description: 'Derrote seu primeiro Chefe.' },
+        };
+        let shieldActivations = 0;
+        let gameStartTime = 0;
+        let lastDamageTime = 0;
+
+        // --- Funções do Jogo ---
+
+        // Carrega recordes do localStorage
+        function loadHighScore() {
+            const savedScore = localStorage.getItem(HIGH_SCORE_KEY);
+            if (savedScore) {
+                highScore = JSON.parse(savedScore);
+            }
+            updateHighScoreDisplay();
+        }
+
+        // Salva recordes no localStorage
+        function saveHighScore() {
+            localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScore));
+        }
+
+        // Atualiza a exibição do recorde
+        function updateHighScoreDisplay() {
+            highScoreDisplay.textContent = highScore.score;
+            highScorePlayerDisplay.textContent = highScore.player;
+        }
+
+        // Conquistas
+        function loadAchievements() {
+            const savedAchievements = localStorage.getItem(ACHIEVEMENTS_KEY);
+            if (savedAchievements) {
+                achievements = JSON.parse(savedAchievements);
+            }
+            updateAchievementsDisplay();
+        }
+
+        function saveAchievements() {
+            localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
+        }
+
+        function checkAchievement(id) {
+            if (!achievements[id].achieved) {
+                achievements[id].achieved = true;
+                console.log(`CONQUISTA DESBLOQUEADA: ${achievements[id].name}`);
+                updateAchievementsDisplay();
+                saveAchievements();
+            }
+        }
+
+        function updateAchievementsDisplay() {
+            achievementsList.innerHTML = '';
+            for (const id in achievements) {
+                const li = document.createElement('li');
+                li.style.color = achievements[id].achieved ? 'lime' : 'gray';
+                li.style.marginBottom = '8px';
+                li.innerHTML = `<strong>${achievements[id].name}</strong>: ${achievements[id].description} ${achievements[id].achieved ? '(DESBLOQUEADO)' : ''}`;
+                achievementsList.appendChild(li);
+            }
+        }
+
+        // Adapta o jogo ao redimensionar a janela
+        window.addEventListener('resize', () => {
+            GAME_WIDTH = window.innerWidth;
+            GAME_HEIGHT = window.innerHeight;
+            canvas.width = GAME_WIDTH;
+            canvas.height = GAME_HEIGHT;
+            initStars();
+            // Reposiciona o jogador e drones para evitar que fiquem fora da tela
+            player.x = Math.min(player.x, GAME_WIDTH - player.width / 2);
+            player.y = Math.min(player.y, GAME_HEIGHT - player.height / 2);
+            player.x = Math.max(player.x, player.width / 2);
+            player.y = Math.max(player.y, player.height / 2);
+        });
+
+        // Gera as estrelas iniciais
+        function initStars() {
+            stars = [];
+            const numStars = Math.floor((GAME_WIDTH * GAME_HEIGHT) / 3000);
+            for (let i = 0; i < numStars; i++) {
+                stars.push({
+                    x: Math.random() * GAME_WIDTH,
+                    y: Math.random() * GAME_HEIGHT,
+                    radius: Math.random() * 1.5 + 0.5,
+                    speed: Math.random() * 0.5 + 0.1,
+                    color: `rgba(255, 255, 255, ${Math.random() * 0.8 + 0.2})`
+                });
+            }
+        }
+
+        // Desenha e atualiza as estrelas para criar o efeito de paralaxe
+        function drawStars() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            for (let i = 0; i < stars.length; i++) {
+                let star = stars[i];
+
+                star.y += star.speed;
+
+                if (star.y > GAME_HEIGHT) {
+                    star.y = 0;
+                    star.x = Math.random() * GAME_WIDTH;
+                }
+
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = star.color;
+                ctx.fill();
+            }
+        }
+
+        // Atualiza o HUD
+        function updateHUD() {
+            livesDisplay.textContent = player.lives;
+            killsDisplay.textContent = enemiesDestroyed;
+            scoreDisplay.textContent = score;
+            difficultyLevelDisplay.textContent = difficultyLevel;
+
+            const currentTime = Date.now();
+
+            // Status do Escudo/Autoshot
+            if (player.isShieldActive) {
+                const remainingTime = Math.ceil((player.shieldActivationTimer + player.shieldDuration - currentTime) / 1000);
+                shieldStatus.textContent = `Ativo (${remainingTime}s)`;
+                shieldStatus.style.color = 'lime';
+            } else if (player.isAutoShotActive) {
+                const remainingTime = Math.ceil((player.autoShotTimer + player.autoShotDuration - currentTime) / 1000);
+                shieldStatus.textContent = `Laser (${remainingTime}s)`;
+                shieldStatus.style.color = 'orange';
+            } else {
+                const timeToNextShield = Math.ceil((player.lastShieldActivationTime + player.shieldCooldown - currentTime) / 1000);
+                if (timeToNextShield > 0) {
+                     shieldStatus.textContent = `Recarregando (${timeToNextShield}s)`;
+                     shieldStatus.style.color = 'yellow';
+                } else {
+                    shieldStatus.textContent = 'Pronto (E)';
+                    shieldStatus.style.color = 'white';
+                }
+            }
+
+            // Status do Drone
+            if (player.isDroneActive) {
+                droneStatus.textContent = 'Ativo';
+                droneStatus.style.color = 'aqua';
+            } else if (score >= player.droneCooldown) {
+                droneStatus.textContent = 'Pronto (Q)';
+                droneStatus.style.color = 'white';
+            } else {
+                droneStatus.textContent = `${player.droneCooldown - score} Pontos`;
+                droneStatus.style.color = 'gray';
+            }
+
+            // Status do Hack
+            if (player.isHackActive) {
+                hackStatus.textContent = `Ativo (${player.hackShotsRemaining} tiros)`;
+                hackStatus.style.color = 'fuchsia';
+            } else {
+                hackStatus.textContent = 'Inativo';
+                hackStatus.style.color = 'gray';
+            }
+
+            // Status da Mina
+            if (player.hasMineAbility) {
+                const timeToNextMine = Math.ceil((player.lastMineTime + player.mineCooldown - currentTime) / 1000);
+                if (timeToNextMine > 0) {
+                    mineStatus.textContent = `Recarregando (${timeToNextMine}s)`;
+                    mineStatus.style.color = 'yellow';
+                } else {
+                    mineStatus.textContent = 'Pronto (M)';
+                    mineStatus.style.color = 'white';
+                }
+            } else {
+                mineStatus.textContent = 'Inativo';
+                mineStatus.style.color = 'gray';
+            }
+
+            // Status do Slow (Time Warp)
+            if (player.isTimeWarpActive) {
+                const remainingTime = Math.ceil((player.timeWarpTimer + player.timeWarpDuration - currentTime) / 1000);
+                slowStatus.textContent = `Ativo (${remainingTime}s)`;
+                slowStatus.style.color = 'lightblue';
+            } else {
+                slowStatus.textContent = 'Inativo';
+                slowStatus.style.color = 'gray';
+            }
+
+            // Status do Piercing Shot
+            if (player.isPiercingShotActive) {
+                const remainingTime = Math.ceil((player.piercingShotTimer + player.piercingShotDuration - currentTime) / 1000);
+                piercingStatus.textContent = `Ativo (${remainingTime}s)`;
+                piercingStatus.style.color = 'purple';
+            } else {
+                piercingStatus.textContent = 'Inativo';
+                piercingStatus.style.color = 'gray';
+            }
+
+            // Status do Missile Barrage (sem duração, instantâneo)
+            barrageStatus.textContent = player.hasMissileBarrage ? 'Pronto (Instantâneo)' : 'Inativo';
+            barrageStatus.style.color = player.hasMissileBarrage ? 'salmon' : 'gray';
+        }
+
+        // Desenha a Nave do Jogador
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            let targetAngle = Math.atan2(mouse.y - player.y, mouse.x - player.x) + Math.PI / 2;
+            let angleDiff = targetAngle - player.currentAngle;
+
+            if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+            player.currentAngle += angleDiff * 0.1; // Suavidade na rotação
+            ctx.rotate(player.currentAngle);
+
+            const mainColor = '#0066FF';
+            const lightColor = '#66CCFF';
+            const darkColor = '#003366';
+            const accentColor = '#CCCCFF';
+
+            // Corpo Principal (Base)
+            ctx.fillStyle = mainColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -player.height / 2);
+            ctx.lineTo(-player.width / 2 * 0.8, player.height / 2);
+            ctx.lineTo(player.width / 2 * 0.8, player.height / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Sombra/Detalhe no Corpo (efeito 3D)
+            ctx.fillStyle = darkColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -player.height / 2);
+            ctx.lineTo(player.width / 2 * 0.8, player.height / 2);
+            ctx.lineTo(player.width / 2 * 0.6, player.height / 2 * 0.8);
+            ctx.lineTo(0, -player.height / 2 * 0.8);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cockpit
+            ctx.fillStyle = accentColor;
+            ctx.beginPath();
+            ctx.arc(0, -player.height / 4, player.width / 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = darkColor;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Asas Laterais (mais definidas)
+            ctx.fillStyle = mainColor;
+            ctx.beginPath();
+            ctx.moveTo(-player.width * 0.4, player.height * 0.1);
+            ctx.lineTo(-player.width * 0.7, player.height * 0.3);
+            ctx.lineTo(-player.width * 0.4, player.height * 0.4);
+            ctx.lineTo(-player.width * 0.3, player.height * 0.2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = darkColor;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(player.width * 0.4, player.height * 0.1);
+            ctx.lineTo(player.width * 0.7, player.height * 0.3);
+            ctx.lineTo(player.width * 0.4, player.height * 0.4);
+            ctx.lineTo(player.width * 0.3, player.height * 0.2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = darkColor;
+            ctx.stroke();
+
+            // Propulsores traseiros (duplos)
+            ctx.fillStyle = darkColor;
+            ctx.fillRect(-player.width * 0.25, player.height * 0.4, player.width * 0.2, player.height * 0.1);
+            ctx.fillRect(player.width * 0.05, player.height * 0.4, player.width * 0.2, player.height * 0.1);
+
+            // Desenha o escudo se ativo
+            if (player.isShieldActive) {
+                ctx.strokeStyle = 'cyan';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, player.width * 1.2, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // Move a Nave do Jogador e ativa escudo
+        function updatePlayer() {
+            const oldX = player.x;
+            const oldY = player.y;
+
+            let currentSpeed = PLAYER_SPEED;
+            if (player.isTimeWarpActive) { // Jogador fica mais rápido quando Time Warp está ativo
+                currentSpeed *= 1.5;
+            }
+
+            if (keys.w) player.y -= currentSpeed;
+            if (keys.s) player.y += currentSpeed;
+            if (keys.a) player.x -= currentSpeed;
+            if (keys.d) player.x += currentSpeed;
+
+            player.x = Math.max(player.width / 2, Math.min(GAME_WIDTH - player.width / 2, player.x));
+            player.y = Math.max(player.height / 2, Math.min(GAME_HEIGHT - player.height / 2, player.y));
+
+            // Cria partículas de exaustão apenas se a nave estiver se movendo
+            if (player.x !== oldX || player.y !== oldY) {
+                player.lastMoveTime = Date.now();
+                createExhaustParticle(player.x, player.y, player.currentAngle);
+            }
+
+            const currentTime = Date.now();
+            if (keys.e && !player.isShieldActive && (currentTime - player.lastShieldActivationTime >= player.shieldCooldown)) {
+                player.isShieldActive = true;
+                player.shieldActivationTimer = currentTime;
+                player.lastShieldActivationTime = currentTime;
+                keys.e = false;
+                shieldActivations++; // Conquista
+                checkAchievement('shield_master'); // Conquista
+            }
+
+            // Desativa escudo após duração
+            if (player.isShieldActive && (currentTime - player.shieldActivationTimer >= player.shieldDuration)) {
+                player.isShieldActive = false;
+            }
+
+            // Desativa auto-shot após duração
+            if (player.isAutoShotActive && (currentTime - player.autoShotTimer >= player.autoShotDuration)) {
+                player.isAutoShotActive = false;
+            }
+
+            // Ativa Drone
+            if (keys.q && !player.isDroneActive && score >= player.droneCooldown) {
+                player.isDroneActive = true;
+                player.lastDroneActivationScore = score;
+                keys.q = false;
+                spawnDrone(player.x - 50, player.y + 20, -1);
+                spawnDrone(player.x + 50, player.y + 20, 1);
+                checkAchievement('drone_pilot'); // Conquista
+            }
+
+            // Lança Mina
+            if (keys.m && player.hasMineAbility && (currentTime - player.lastMineTime >= player.mineCooldown)) {
+                mines.push({
+                    x: player.x,
+                    y: player.y,
+                    radius: 15,
+                    color: 'orange',
+                    life: 5000, // Tempo de vida da mina
+                    blastRadius: 80,
+                    damage: 50, // Dano que a mina causa em inimigos
+                    spawnTime: currentTime,
+                    pulsing: 0
+                });
+                player.lastMineTime = currentTime;
+                keys.m = false; // Garante que não ativa várias com um só toque
+                player.hasMineAbility = false; // Consome o power-up
+                checkAchievement('mine_layer'); // Conquista
+            }
+
+            // Desativa Time Warp
+            if (player.isTimeWarpActive && (currentTime - player.timeWarpTimer >= player.timeWarpDuration)) {
+                player.isTimeWarpActive = false;
+            }
+
+            // Desativa Piercing Shot
+            if (player.isPiercingShotActive && (currentTime - player.piercingShotTimer >= player.piercingShotDuration)) {
+                player.isPiercingShotActive = false;
+            }
+        }
+
+        // Funções de Partículas de Exaustão
+        function createExhaustParticle(x, y, shipAngle) {
+            const numParticles = 2;
+            let baseColor = 'rgba(150, 200, 255, ';
+
+            if (player.isShieldActive) {
+                baseColor = 'rgba(0, 255, 0, ';
+            } else if (player.isAutoShotActive) {
+                baseColor = 'rgba(255, 165, 0, ';
+            }
+
+            for (let i = 0; i < numParticles; i++) {
+                const offset = player.height / 2 + 5;
+                const spreadX = (Math.random() - 0.5) * player.width * 0.2;
+                const spreadY = (Math.random() - 0.5) * player.width * 0.1;
+
+                const propulsor1X = x - Math.sin(shipAngle) * offset - Math.cos(shipAngle) * (player.width * 0.15) + spreadX;
+                const propulsor1Y = y + Math.cos(shipAngle) * offset - Math.sin(shipAngle) * (player.width * 0.15) + spreadY;
+
+                const propulsor2X = x - Math.sin(shipAngle) * offset + Math.cos(shipAngle) * (player.width * 0.15) + spreadX;
+                const propulsor2Y = y + Math.cos(shipAngle) * offset + Math.sin(shipAngle) * (player.width * 0.15) + spreadY;
+
+                const speed = Math.random() * 2 + 2;
+                const angle = shipAngle + Math.PI;
+                const vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 0.5;
+                const vy = Math.sin(angle) * speed + (Math.random() - 0.5) * 0.5;
+
+                exhaustParticles.push({
+                    x: propulsor1X,
+                    y: propulsor1Y,
+                    radius: Math.random() * 3 + 1,
+                    color: baseColor,
+                    alpha: 1,
+                    vx: vx,
+                    vy: vy,
+                    life: 60 + Math.random() * 30
+                });
+                exhaustParticles.push({
+                    x: propulsor2X,
+                    y: propulsor2Y,
+                    radius: Math.random() * 3 + 1,
+                    color: baseColor,
+                    alpha: 1,
+                    vx: vx,
+                    vy: vy,
+                    life: 60 + Math.random() * 30
+                });
+            }
+        }
+
+        function updateExhaustParticles() {
+            for (let i = exhaustParticles.length - 1; i >= 0; i--) {
+                let particle = exhaustParticles[i];
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life--;
+                particle.alpha = particle.life / 90;
+
+                if (particle.life <= 0) {
+                    exhaustParticles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = particle.alpha;
+                    ctx.fillStyle = particle.color + particle.alpha + ')';
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Atira com a Nave do Jogador (com cauda e hack)
+        function shootPlayerBullet(sourceX, sourceY, targetX, targetY, isDroneBullet = false) {
+            let dx = targetX - sourceX;
+            let dy = targetY - sourceY;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            let normalizedDx = dx / distance;
+            let normalizedDy = dy / distance;
+
+            const bulletRadius = (player.isAutoShotActive || isDroneBullet) ? 6 : 4;
+            const bulletColor = isDroneBullet ? 'aqua' : (player.isAutoShotActive ? 'orange' : (player.isPiercingShotActive ? 'purple' : 'lime'));
+
+            playerBullets.push({
+                x: sourceX,
+                y: sourceY,
+                radius: bulletRadius,
+                color: bulletColor,
+                vx: normalizedDx * BULLET_SPEED,
+                vy: normalizedDy * BULLET_SPEED,
+                trailLength: (player.isAutoShotActive || isDroneBullet) ? 20 : 10,
+                trail: [],
+                isHoming: player.isHackActive && !isDroneBullet, // Drones não ganham hack
+                targets: player.isHackActive && !isDroneBullet ? [...enemies] : [],
+                isPiercing: player.isPiercingShotActive, // NOVO: Bala perfurante
+                hits: [] // Para balas perfurantes, registra os inimigos já atingidos
+            });
+
+            if (player.isHackActive && !isDroneBullet) {
+                player.hackShotsRemaining--;
+                if (player.hackShotsRemaining <= 0) {
+                    player.isHackActive = false;
+                }
+            }
+        }
+
+        // Desenha e Atualiza os Tiros do Jogador (com cauda e hack)
+        function updatePlayerBullets() {
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                let bullet = playerBullets[i];
+
+                if (bullet.isHoming && bullet.targets.length > 0) {
+                    // Remove alvos destruídos ou fora da lista de inimigos
+                    bullet.targets = bullet.targets.filter(target => target && enemies.includes(target));
+
+                    if (bullet.targets.length === 0) {
+                        bullet.isHoming = false; // Perde o rastreamento se não houver mais alvos válidos
+                    } else {
+                        const target = bullet.targets[0]; // Continua seguindo o primeiro alvo
+                        let dx = target.x - bullet.x;
+                        let dy = target.y - bullet.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance > 0) {
+                            bullet.vx = (dx / distance) * BULLET_SPEED;
+                            bullet.vy = (dy / distance) * BULLET_SPEED;
+                        }
+                    }
+                }
+
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+
+                bullet.trail.push({ x: bullet.x, y: bullet.y });
+                while (bullet.trail.length > bullet.trailLength) {
+                    bullet.trail.shift();
+                }
+
+                if (bullet.x < -bullet.radius || bullet.x > GAME_WIDTH + bullet.radius || bullet.y < -bullet.radius || bullet.y > GAME_HEIGHT + bullet.radius) {
+                    playerBullets.splice(i, 1);
+                    continue;
+                }
+
+                for (let j = 0; j < bullet.trail.length; j++) {
+                    const trailPoint = bullet.trail[j];
+                    const alpha = (j / bullet.trail.length) * 0.7;
+                    let trailColor;
+                    if (bullet.color === 'orange') trailColor = '255, 165, 0';
+                    else if (bullet.color === 'aqua') trailColor = '0, 255, 255';
+                    else if (bullet.color === 'purple') trailColor = '128, 0, 128';
+                    else trailColor = '0, 255, 0';
+                    ctx.fillStyle = `rgba(${trailColor}, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(trailPoint.x, trailPoint.y, bullet.radius * (j / bullet.trail.length) * 0.7, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = bullet.color;
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // --- Funções de Inimigos ---
+
+        function getEnemyProperties(currentScore) {
+            let color, speedMultiplier, spawnIntervalMultiplier, shotIntervalMultiplier, points, type;
+            let size = 35 + Math.random() * 15;
+            let health = 1;
+            let shotSpeedMultiplier = 1;
+
+            if (currentScore < 200) {
+                color = '#00CED1';
+                speedMultiplier = 1;
+                spawnIntervalMultiplier = 1;
+                shotIntervalMultiplier = 1;
+                points = 20;
+                type = 'standard';
+            } else if (currentScore < 700) {
+                color = '#FF4500';
+                speedMultiplier = 1.2;
+                spawnIntervalMultiplier = 0.8;
+                shotIntervalMultiplier = 0.7;
+                points = 30;
+                type = 'standard';
+            } else if (currentScore < 1500){
+                color = '#32CD32';
+                speedMultiplier = 1.5;
+                spawnIntervalMultiplier = 0.6;
+                shotIntervalMultiplier = 0.5;
+                points = 50;
+                type = 'standard';
+            } else { // Maior dificuldade, chance de inimigos especiais
+                const randomType = Math.random();
+                if (randomType < 0.2) { // 20% chance de Hunter
+                    type = 'hunter';
+                    color = '#FFA07A'; // Laranja claro
+                    size = 25;
+                    speedMultiplier = 2; // Hunters são mais rápidos
+                    points = 25;
+                    shotIntervalMultiplier = 0; // Não atira
+                } else if (randomType < 0.35) { // 15% chance de Juggernaut
+                    type = 'juggernaut';
+                    color = '#8B0000'; // Vermelho escuro
+                    size = 60;
+                    speedMultiplier = 0.5; // Lento
+                    health = 5; // Muita vida
+                    points = 100;
+                    shotIntervalMultiplier = 2; // Atira mais devagar, mas tiro pesado
+                    shotSpeedMultiplier = 0.7; // Projéteis mais lentos
+                } else if (randomType < 0.5) { // 15% chance de Splitter
+                    type = 'splitter';
+                    color = '#DA70D6'; // Roxo claro
+                    size = 45;
+                    speedMultiplier = 1.2;
+                    health = 2;
+                    points = 60;
+                    shotIntervalMultiplier = 0.8;
+                } else if (randomType < 0.6) { // 10% chance de Support Drone
+                    type = 'support';
+                    color = '#00FFFF'; // Ciano
+                    size = 20;
+                    speedMultiplier = 1;
+                    health = 1;
+                    points = 10;
+                    shotIntervalMultiplier = 0; // Não atira
+                } else if (randomType < 0.7) { // 10% chance de Stealth Drone
+                    type = 'stealth';
+                    color = '#A9A9A9'; // Cinza escuro
+                    size = 30;
+                    speedMultiplier = 1.8;
+                    health = 1;
+                    points = 40;
+                    shotIntervalMultiplier = 0.6;
+                }
+                else { // 30% chance de Standard de alto nível
+                    color = '#32CD32';
+                    speedMultiplier = 1.5;
+                    spawnIntervalMultiplier = 0.6;
+                    shotIntervalMultiplier = 0.5;
+                    points = 50;
+                    type = 'standard';
+                }
+            }
+
+            return { color, speedMultiplier, spawnIntervalMultiplier, shotIntervalMultiplier, shotSpeedMultiplier, points, size, health, type };
+        }
+
+
+        function spawnEnemy(specificType = null, x = null, y = null) {
+            const sides = ['top', 'bottom', 'left', 'right'];
+            const spawnSide = sides[Math.floor(Math.random() * sides.length)];
+            const props = getEnemyProperties(score);
+
+            if (specificType) props.type = specificType;
+
+            let finalX = x;
+            let finalY = y;
+            const size = props.size;
+
+            if (finalX === null || finalY === null) {
+                switch (spawnSide) {
+                    case 'top': finalX = Math.random() * GAME_WIDTH; finalY = -size; break;
+                    case 'bottom': finalX = Math.random() * GAME_WIDTH; finalY = GAME_HEIGHT + size; break;
+                    case 'left': finalX = -size; finalY = Math.random() * GAME_HEIGHT; break;
+                    case 'right': finalX = GAME_WIDTH + size; finalY = Math.random() * GAME_HEIGHT; break;
+                }
+            }
+
+            const speed = (2 + Math.random() * 1.5) * props.speedMultiplier;
+            const shotInterval = Math.max(300, (1000 + Math.random() * 1000) * props.shotIntervalMultiplier);
+
+            enemies.push({
+                x: finalX,
+                y: finalY,
+                width: size,
+                height: size * 0.8,
+                color: props.color,
+                speed: player.isTimeWarpActive ? speed * 0.3 : speed, // Efeito Time Warp
+                baseSpeed: speed, // Para resetar após Time Warp
+                lastShotTime: Date.now(),
+                shotInterval: player.isTimeWarpActive ? shotInterval * 3 : shotInterval, // Efeito Time Warp
+                baseShotInterval: shotInterval,
+                shotSpeedMultiplier: props.shotSpeedMultiplier,
+                points: props.points,
+                health: props.health,
+                type: props.type,
+                alpha: 1, // Para stealth drones
+                lastVisibilityToggle: Date.now(),
+                visibilityInterval: 1000 + Math.random() * 1000,
+                isVisible: true,
+                target: {x: player.x, y: player.y} // Para Hunters e outros que miram
+            });
+        }
+
+        // Desenha Inimigos
+        function drawEnemy(enemy) {
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y);
+
+            let dx = player.x - enemy.x;
+            let dy = player.y - enemy.y;
+            let angle = Math.atan2(dy, dx) + Math.PI / 2;
+            ctx.rotate(angle);
+
+            if (enemy.type === 'stealth') {
+                ctx.globalAlpha = enemy.alpha;
+            }
+
+            ctx.fillStyle = enemy.color;
+            ctx.beginPath();
+            ctx.moveTo(0, -enemy.height / 2);
+            ctx.lineTo(enemy.width / 2, 0);
+            ctx.lineTo(0, enemy.height / 2);
+            ctx.lineTo(-enemy.width / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Detalhes para inimigos
+            if (enemy.type === 'juggernaut') {
+                ctx.fillStyle = '#FFD700'; // Ouro
+                ctx.fillRect(-enemy.width * 0.3, -enemy.height * 0.3, enemy.width * 0.6, enemy.height * 0.6);
+            } else if (enemy.type === 'support') {
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(0, 0, enemy.width * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Canhões
+            ctx.fillStyle = '#8B0000';
+            ctx.beginPath();
+            ctx.moveTo(-enemy.width / 2, 0);
+            ctx.lineTo(-enemy.width / 2 - 10, -5);
+            ctx.lineTo(-enemy.width / 2 - 10, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(enemy.width / 2, 0);
+            ctx.lineTo(enemy.width / 2 + 10, -5);
+            ctx.lineTo(enemy.width / 2 + 10, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Barra de vida para Juggernaut ou Boss
+            if (enemy.type === 'juggernaut' || enemy.type === 'boss') {
+                ctx.fillStyle = 'red';
+                let healthBarWidth = enemy.width * (enemy.health / enemy.maxHealth);
+                ctx.fillRect(-enemy.width / 2, enemy.height / 2 + 5, healthBarWidth, 5);
+                ctx.strokeStyle = 'white';
+                ctx.strokeRect(-enemy.width / 2, enemy.height / 2 + 5, enemy.width, 5);
+            }
+
+            ctx.restore();
+        }
+
+        function updateEnemies() {
+            const currentTime = Date.now();
+            const props = getEnemyProperties(score);
+            const currentSpawnInterval = (1500 + Math.random() * 500) * props.spawnIntervalMultiplier;
+
+            if (currentTime - lastEnemySpawnTime > currentSpawnInterval) {
+                spawnEnemy();
+                lastEnemySpawnTime = currentTime;
+            }
+
+            // Boss Spawning
+            if (!activeBoss && score >= (lastBossSpawnTime / 1000 * 10) + bossSpawnInterval) { // Aumenta dificuldade do boss com tempo/score
+                spawnBoss();
+                lastBossSpawnTime = currentTime;
+                bossSpawnInterval *= 1.2; // Aumenta o intervalo para o próximo boss
+            }
+
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let enemy = enemies[i];
+
+                if (player.isTimeWarpActive) { // Aplica lentidão se Time Warp ativo
+                    enemy.speed = enemy.baseSpeed * 0.3;
+                    enemy.shotInterval = enemy.baseShotInterval * 3;
+                } else {
+                    enemy.speed = enemy.baseSpeed;
+                    enemy.shotInterval = enemy.baseShotInterval;
+                }
+
+                // Lógica de movimento baseada no tipo
+                if (enemy.type === 'hunter') {
+                    // Hunters seguem o jogador mais agressivamente
+                    let dx = player.x - enemy.x;
+                    let dy = player.y - enemy.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > 0) {
+                        enemy.x += (dx / distance) * enemy.speed;
+                        enemy.y += (dy / distance) * enemy.speed;
+                    }
+                } else if (enemy.type === 'support') {
+                    // Support Drones tentam se aproximar do inimigo mais próximo (que não seja outro support)
+                    let closestAlly = null;
+                    let minDist = Infinity;
+                    for (let j = 0; j < enemies.length; j++) {
+                        if (i === j || enemies[j].type === 'support' || enemies[j].type === 'hunter' || enemies[j].type === 'boss') continue;
+                        const ally = enemies[j];
+                        const dist = Math.sqrt(Math.pow(enemy.x - ally.x, 2) + Math.pow(enemy.y - ally.y, 2));
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestAlly = ally;
+                        }
+                    }
+                    if (closestAlly && minDist < 200) { // Buffa inimigos próximos
+                        // Exemplo: temporariamente aumenta a velocidade de tiro dos aliados
+                        if (!closestAlly.buffed && Math.random() < 0.01) { // Pequena chance a cada frame
+                            closestAlly.shotInterval *= 0.5;
+                            closestAlly.buffed = true;
+                            setTimeout(() => {
+                                closestAlly.shotInterval = closestAlly.baseShotInterval;
+                                closestAlly.buffed = false;
+                            }, 3000);
+                        }
+                        let dx = closestAlly.x - enemy.x;
+                        let dy = closestAlly.y - enemy.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance > 0 && distance > 50) { // Mantém distância
+                            enemy.x += (dx / distance) * enemy.speed * 0.8;
+                            enemy.y += (dy / distance) * enemy.speed * 0.8;
+                        }
+                    } else { // Se não houver aliados, move para o jogador
+                        let dx = player.x - enemy.x;
+                        let dy = player.y - enemy.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance > 0) {
+                            enemy.x += (dx / distance) * enemy.speed;
+                            enemy.y += (dy / distance) * enemy.speed;
+                        }
+                    }
+                } else if (enemy.type === 'stealth') {
+                    // Stealth Drones alternam visibilidade
+                    if (currentTime - enemy.lastVisibilityToggle > enemy.visibilityInterval) {
+                        enemy.isVisible = !enemy.isVisible;
+                        enemy.alpha = enemy.isVisible ? 1 : 0.2;
+                        enemy.lastVisibilityToggle = currentTime;
+                    }
+
+                    // Move em direção ao jogador, independentemente da visibilidade
+                    let dx = player.x - enemy.x;
+                    let dy = player.y - enemy.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > 0) {
+                        enemy.x += (dx / distance) * enemy.speed;
+                        enemy.y += (dy / distance) * enemy.speed;
+                    }
+                }
+                else { // Inimigos padrão e Juggernauts
+                    let dx = player.x - enemy.x;
+                    let dy = player.y - enemy.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > 0) {
+                        enemy.x += (dx / distance) * enemy.speed;
+                        enemy.y += (dy / distance) * enemy.speed;
+                    }
+                }
+
+                // Lógica de tiro para inimigos que atiram
+                if (enemy.shotInterval > 0 && currentTime - enemy.lastShotTime > enemy.shotInterval) {
+                    if (enemy.type === 'juggernaut') {
+                        // Tiro pesado e lento
+                        let bulletDx = player.x - enemy.x;
+                        let bulletDy = player.y - enemy.y;
+                        let bulletDistance = Math.sqrt(bulletDx * bulletDx + bulletDy * bulletDy);
+                        let normalizedBulletDx = bulletDx / bulletDistance;
+                        let normalizedBulletDy = bulletDy / bulletDistance;
+                        enemyBullets.push({
+                            x: enemy.x,
+                            y: enemy.y,
+                            radius: 8,
+                            color: 'darkred',
+                            vx: normalizedBulletDx * (BULLET_SPEED - 4) * enemy.shotSpeedMultiplier,
+                            vy: normalizedBulletDy * (BULLET_SPEED - 4) * enemy.shotSpeedMultiplier,
+                            damage: 2 // Causa mais dano
+                        });
+                    } else if (enemy.type === 'stealth' && !enemy.isVisible) {
+                        // Stealth drones só atiram quando visíveis ou com um pequeno atraso antes de ficarem invisíveis
+                        // Por simplicidade, vamos fazê-los atirar apenas quando visíveis
+                    } else {
+                        let bulletDx = player.x - enemy.x;
+                        let bulletDy = player.y - enemy.y;
+                        let bulletDistance = Math.sqrt(bulletDx * bulletDx + bulletDy * bulletDy);
+                        let normalizedBulletDx = bulletDx / bulletDistance;
+                        let normalizedBulletDy = bulletDy / bulletDistance;
+
+                        enemyBullets.push({
+                            x: enemy.x,
+                            y: enemy.y,
+                            radius: 5,
+                            color: 'red',
+                            vx: normalizedBulletDx * (BULLET_SPEED - 2) * enemy.shotSpeedMultiplier,
+                            vy: normalizedBulletDy * (BULLET_SPEED - 2) * enemy.shotSpeedMultiplier,
+                            damage: 1
+                        });
+                    }
+                    enemy.lastShotTime = currentTime;
+                }
+                drawEnemy(enemy);
+            }
+
+            // Atualiza e desenha o Boss, se houver
+            if (activeBoss) {
+                updateBoss(activeBoss);
+                drawEnemy(activeBoss); // Reutiliza a função de desenho de inimigos, mas pode ter uma própria
+            }
+        }
+
+        // Funções de Boss
+        function spawnBoss() {
+            const bossSize = 100;
+            const bossHealth = 50 + bossKills * 10; // Aumenta a vida com cada boss derrotado
+            activeBoss = {
+                x: GAME_WIDTH / 2,
+                y: -bossSize,
+                width: bossSize,
+                height: bossSize * 0.8,
+                color: '#FF00FF', // Magenta
+                speed: 1,
+                baseSpeed: 1,
+                lastShotTime: Date.now(),
+                shotInterval: 500,
+                baseShotInterval: 500,
+                shotSpeedMultiplier: 1,
+                points: 500,
+                health: bossHealth,
+                maxHealth: bossHealth,
+                type: 'boss',
+                phase: 1, // Fases de ataque do boss
+                lastPhaseChangeTime: Date.now(),
+                patternTimer: 0,
+                patternInterval: 200,
+                patternCount: 0
+            };
+            console.log("BOSS APARECEU!");
+        }
+
+        function updateBoss(boss) {
+            const currentTime = Date.now();
+
+            if (player.isTimeWarpActive) { // Aplica lentidão se Time Warp ativo
+                boss.speed = boss.baseSpeed * 0.3;
+                boss.shotInterval = boss.baseShotInterval * 3;
+            } else {
+                boss.speed = boss.baseSpeed;
+                boss.shotInterval = boss.baseShotInterval;
+            }
+
+            // Movimento do boss (exemplo: mover para baixo e depois de um lado para o outro)
+            if (boss.y < GAME_HEIGHT / 4) {
+                boss.y += boss.speed;
+            } else {
+                // Mover de lado a lado
+                boss.x += boss.speed * Math.sin(currentTime / 1000);
+                if (boss.x < boss.width / 2 || boss.x > GAME_WIDTH - boss.width / 2) {
+                    boss.speed *= -1; // Inverte direção se atingir as bordas
+                }
+            }
+
+            // Lógica de ataque do boss por fases
+            if (currentTime - boss.lastShotTime > boss.shotInterval) {
+                if (boss.health > boss.maxHealth * 0.7) { // Fase 1: Tiro padrão + espiral
+                    shootEnemyBullet(boss.x, boss.y, player.x, player.y);
+                    // Tiro em espiral
+                    const numBullets = 6;
+                    for (let i = 0; i < numBullets; i++) {
+                        const angle = (boss.patternCount * 0.2) + (i * (Math.PI * 2 / numBullets));
+                        enemyBullets.push({
+                            x: boss.x,
+                            y: boss.y,
+                            radius: 6,
+                            color: 'red',
+                            vx: Math.cos(angle) * (BULLET_SPEED - 3) * boss.shotSpeedMultiplier,
+                            vy: Math.sin(angle) * (BULLET_SPEED - 3) * boss.shotSpeedMultiplier,
+                            damage: 1
+                        });
+                    }
+                    boss.patternCount++;
+                } else if (boss.health > boss.maxHealth * 0.3) { // Fase 2: Múltiplos tiros diretos
+                    shootEnemyBullet(boss.x, boss.y, player.x, player.y);
+                    shootEnemyBullet(boss.x - 30, boss.y, player.x, player.y);
+                    shootEnemyBullet(boss.x + 30, boss.y, player.x, player.y);
+                } else { // Fase 3: Chuva de balas
+                    const numBullets = 10;
+                    for (let i = 0; i < numBullets; i++) {
+                        enemyBullets.push({
+                            x: boss.x + (Math.random() - 0.5) * boss.width,
+                            y: boss.y + (Math.random() - 0.5) * boss.height,
+                            radius: 5,
+                            color: 'red',
+                            vx: (Math.random() - 0.5) * (BULLET_SPEED - 1) * boss.shotSpeedMultiplier,
+                            vy: (Math.random() - 0.5) * (BULLET_SPEED - 1) * boss.shotSpeedMultiplier,
+                            damage: 1
+                        });
+                    }
+                }
+                boss.lastShotTime = currentTime;
+            }
+        }
+
+
+        function shootEnemyBullet(sourceX, sourceY, targetX, targetY) {
+            let bulletDx = targetX - sourceX;
+            let bulletDy = targetY - sourceY;
+            let bulletDistance = Math.sqrt(bulletDx * bulletDx + bulletDy * bulletDy);
+            let normalizedBulletDx = bulletDx / bulletDistance;
+            let normalizedBulletDy = bulletDy / bulletDistance;
+
+            enemyBullets.push({
+                x: sourceX,
+                y: sourceY,
+                radius: 5,
+                color: 'red',
+                vx: normalizedBulletDx * (BULLET_SPEED - 2),
+                vy: normalizedBulletDy * (BULLET_SPEED - 2),
+                damage: 1
+            });
+        }
+
+
+        function updateEnemyBullets() {
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let bullet = enemyBullets[i];
+
+                let currentBulletSpeed = BULLET_SPEED - 2;
+                if (player.isTimeWarpActive) { // Aplica lentidão se Time Warp ativo
+                    currentBulletSpeed *= 0.3;
+                }
+
+                bullet.x += bullet.vx * (currentBulletSpeed / (BULLET_SPEED - 2));
+                bullet.y += bullet.vy * (currentBulletSpeed / (BULLET_SPEED - 2));
+
+                if (bullet.x < -bullet.radius || bullet.x > GAME_WIDTH + bullet.radius || bullet.y < -bullet.radius || bullet.y > GAME_HEIGHT + bullet.radius) {
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+
+                ctx.fillStyle = bullet.color;
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // --- Explosões ---
+        function createExplosion(x, y, color = 'white') {
+            explosions.push({
+                x: x,
+                y: y,
+                radius: 5,
+                maxRadius: 60,
+                color: color,
+                alpha: 1,
+                speed: 3
+            });
+
+            explosions.push({
+                x: x,
+                y: y,
+                radius: 1,
+                maxRadius: 20,
+                color: 'white',
+                alpha: 1,
+                speed: 5
+            });
+
+            const numShrapnel = 15 + Math.floor(Math.random() * 10);
+            for (let i = 0; i < numShrapnel; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                shrapnelParticles.push({
+                    x: x,
+                    y: y,
+                    radius: Math.random() * 3 + 1,
+                    color: color,
+                    alpha: 1,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 50 + Math.random() * 40,
+                    gravity: 0.05
+                });
+            }
+        }
+
+        function updateExplosions() {
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                let exp = explosions[i];
+                exp.radius += exp.speed;
+                exp.alpha -= 0.035;
+
+                if (exp.alpha <= 0 || exp.radius >= exp.maxRadius) {
+                    explosions.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = exp.alpha;
+                    ctx.fillStyle = exp.color;
+                    ctx.beginPath();
+                    ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function updateShrapnelParticles() {
+            for (let i = shrapnelParticles.length - 1; i >= 0; i--) {
+                let particle = shrapnelParticles[i];
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vy += particle.gravity;
+                particle.life--;
+                particle.alpha = particle.life / 90;
+
+                if (particle.life <= 0) {
+                    shrapnelParticles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = particle.alpha;
+                    ctx.fillStyle = particle.color;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        // --- Vidas Bônus ---
+        let lastLifeDropScore = 0;
+        const LIFE_DROP_SCORE_INTERVAL_RANDOM = 120;
+
+        function dropLifePickup(x, y) {
+            lifePickups.push({
+                x: x,
+                y: y,
+                radius: 10,
+                color: 'lime',
+                pulsing: 0
+            });
+        }
+
+        function drawLifePickup(life) {
+            ctx.save();
+            ctx.translate(life.x, life.y);
+
+            life.pulsing = (life.pulsing + 0.05) % (Math.PI * 2);
+            let currentSize = life.radius + Math.sin(life.pulsing) * 3;
+
+            ctx.fillStyle = life.color;
+            ctx.fillRect(-currentSize / 4, -currentSize, currentSize / 2, currentSize * 2);
+            ctx.fillRect(-currentSize, -currentSize / 4, currentSize * 2, currentSize / 2);
+
+            ctx.restore();
+        }
+
+        function updateLifePickups() {
+            for (let i = lifePickups.length - 1; i >= 0; i--) {
+                let life = lifePickups[i];
+                drawLifePickup(life);
+
+                if (checkCollision({x: life.x, y: life.y, radius: life.radius},
+                                   {x: player.x - player.width / 2, y: player.y - player.height / 2, width: player.width, height: player.height})) {
+                    player.lives++;
+                    lifePickups.splice(i, 1);
+                    console.log("Vida coletada! Vidas: " + player.lives);
+                }
+            }
+        }
+
+        // --- Funções de Power-Ups ---
+
+        function dropPowerUp(x, y, type = null) {
+            const types = ['shield', 'missile', 'autoshot', 'hack', 'drone_ability', 'mine_ability', 'time_warp', 'piercing_shot', 'missile_barrage'];
+            const randomType = type || types[Math.floor(Math.random() * types.length)];
+            let color, symbol;
+
+            switch (randomType) {
+                case 'shield': color = 'blue'; symbol = 'S'; break;
+                case 'missile': color = 'red'; symbol = 'M'; break; // Míssil único para limpeza de tela
+                case 'autoshot': color = 'yellow'; symbol = 'A'; break;
+                case 'hack': color = 'fuchsia'; symbol = 'H'; break;
+                case 'drone_ability': color = 'aqua'; symbol = 'D'; break;
+                case 'mine_ability': color = 'orange'; symbol = 'X'; break; // NOVO: Mina
+                case 'time_warp': color = 'lightblue'; symbol = 'T'; break; // NOVO: Time Warp
+                case 'piercing_shot': color = 'purple'; symbol = 'P'; break; // NOVO: Piercing Shot
+                case 'missile_barrage': color = 'salmon'; symbol = 'B'; break; // NOVO: Missile Barrage
+                case 'super_power_up': color = 'gold'; symbol = '!!!'; break; // NOVO: Super Power-Up
+            }
+
+            powerUps.push({
+                x: x,
+                y: y,
+                radius: 12,
+                type: randomType,
+                color: color,
+                symbol: symbol,
+                pulsing: 0
+            });
+        }
+
+        function drawPowerUp(pu) {
+            ctx.save();
+            ctx.translate(pu.x, pu.y);
+
+            pu.pulsing = (pu.pulsing + 0.1) % (Math.PI * 2);
+            let currentSize = pu.radius + Math.sin(pu.pulsing) * 2;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, currentSize, 0, Math.PI * 2);
+            ctx.fillStyle = pu.color;
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = 'white';
+            ctx.font = `${currentSize * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(pu.symbol, 0, 0);
+
+            ctx.restore();
+        }
+
+        function updatePowerUps() {
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                let pu = powerUps[i];
+                drawPowerUp(pu);
+
+                if (checkCollision({x: pu.x, y: pu.y, radius: pu.radius},
+                                   {x: player.x - player.width / 2, y: player.y - player.height / 2, width: player.width, height: player.height})) {
+                    
+                    activatePowerUp(pu.type);
+                    powerUps.splice(i, 1);
+                    console.log(`Power-Up ${pu.type} coletado!`);
+                }
+            }
+        }
+
+        function activatePowerUp(type) {
+            const currentTime = Date.now();
+            // Desativa a maioria das habilidades temporárias ao pegar um novo power-up de "estado"
+            if (type !== 'mine_ability' && type !== 'missile' && type !== 'missile_barrage' && type !== 'super_power_up') {
+                player.isShieldActive = false;
+                player.isAutoShotActive = false;
+                player.isHackActive = false;
+                player.isTimeWarpActive = false;
+                player.isPiercingShotActive = false;
+                player.isDroneActive = false;
+                drones = []; // Remove drones se uma nova habilidade de estado for pega
+            }
+
+            switch (type) {
+                case 'shield':
+                    player.isShieldActive = true;
+                    player.shieldActivationTimer = currentTime;
+                    player.lastShieldActivationTime = currentTime;
+                    break;
+                case 'missile': // Míssil de Limpeza de Tela
+                    enemies.forEach(enemy => {
+                        createExplosion(enemy.x, enemy.y, 'gold');
+                        enemiesDestroyed++;
+                        score += enemy.points;
+                        checkAchievement('first_kill'); // Conquista
+                        if (enemiesDestroyed >= 10) checkAchievement('10_kills');
+                        if (enemiesDestroyed >= 50) checkAchievement('50_kills');
+                        if (enemiesDestroyed >= 100) checkAchievement('100_kills');
+                    });
+                    enemies = [];
+                    enemyBullets = [];
+                    if (activeBoss) { // Missil limpa o boss, mas não o destrói instantaneamente
+                        activeBoss.health = Math.max(0, activeBoss.health - 50); // Reduz vida do boss
+                        if (activeBoss.health <= 0) {
+                            createExplosion(activeBoss.x, activeBoss.y, 'gold');
+                            score += activeBoss.points;
+                            bossKills++;
+                            checkAchievement('first_boss_kill');
+                            activeBoss = null;
+                        }
+                    }
+                    console.log("Míssil de limpeza lançado!");
+                    break;
+                case 'autoshot':
+                    player.isAutoShotActive = true;
+                    player.autoShotTimer = currentTime;
+                    break;
+                case 'hack':
+                    player.isHackActive = true;
+                    player.hackShotsRemaining = 10;
+                    break;
+                case 'drone_ability':
+                    if (!player.isDroneActive) {
+                        player.isDroneActive = true;
+                        player.lastDroneActivationScore = score;
+                        spawnDrone(player.x - 50, player.y + 20, -1);
+                        spawnDrone(player.x + 50, player.y + 20, 1);
+                        checkAchievement('drone_pilot');
+                    }
+                    break;
+                case 'mine_ability': // NOVO: Mina Espacial
+                    player.hasMineAbility = true;
+                    console.log("Habilidade Mina Espacial obtida!");
+                    break;
+                case 'time_warp': // NOVO: Time Warp
+                    player.isTimeWarpActive = true;
+                    player.timeWarpTimer = currentTime;
+                    console.log("Aceleração Temporal ativada!");
+                    checkAchievement('time_lord');
+                    break;
+                case 'piercing_shot': // NOVO: Piercing Shot
+                    player.isPiercingShotActive = true;
+                    player.piercingShotTimer = currentTime;
+                    console.log("Disparo Perfurante ativado!");
+                    checkAchievement('piercing_expert');
+                    break;
+                case 'missile_barrage': // NOVO: Missile Barrage
+                    // Ativa a barragem instantaneamente
+                    const barrageCount = 10;
+                    for (let i = 0; i < barrageCount; i++) {
+                        setTimeout(() => {
+                            if (enemies.length > 0) {
+                                let closestEnemy = enemies[0]; // Ou um inimigo aleatório
+                                createMissile(player.x, player.y, closestEnemy.x, closestEnemy.y);
+                            }
+                        }, i * 100); // Lança mísseis com pequeno atraso
+                    }
+                    console.log("Chuva de Mísseis lançada!");
+                    checkAchievement('barrage_master');
+                    break;
+                case 'super_power_up': // NOVO: Super Power-Up
+                    player.lives++;
+                    player.isShieldActive = true;
+                    player.shieldActivationTimer = currentTime;
+                    player.lastShieldActivationTime = currentTime;
+                    player.isAutoShotActive = true;
+                    player.autoShotTimer = currentTime;
+                    player.isHackActive = true;
+                    player.hackShotsRemaining = 20; // Mais tiros hack
+                    player.hasMineAbility = true;
+                    player.isTimeWarpActive = true;
+                    player.timeWarpTimer = currentTime;
+                    player.isPiercingShotActive = true;
+                    player.piercingShotTimer = currentTime;
+                    if (!player.isDroneActive) {
+                        player.isDroneActive = true;
+                        spawnDrone(player.x - 50, player.y + 20, -1);
+                        spawnDrone(player.x + 50, player.y + 20, 1);
+                    }
+                    console.log("SUPER POWER-UP COLETADO! VOCÊ ESTÁ IMPARÁVEL!");
+                    break;
+            }
+        }
+
+        // Funções de Mísseis Teleguiados (para Missile Barrage)
+        let missiles = [];
+        function createMissile(startX, startY, targetX, targetY) {
+            missiles.push({
+                x: startX,
+                y: startY,
+                radius: 5,
+                color: 'salmon',
+                vx: 0,
+                vy: 0,
+                speed: BULLET_SPEED * 0.8,
+                target: { x: targetX, y: targetY },
+                homingStrength: 0.1 // Força de teleguiamento
+            });
+        }
+
+        function updateMissiles() {
+            for (let i = missiles.length - 1; i >= 0; i--) {
+                let missile = missiles[i];
+
+                if (enemies.length > 0) {
+                    // Encontra o inimigo mais próximo se o alvo atual foi destruído ou está longe
+                    let closestEnemy = null;
+                    let minDist = Infinity;
+                    for(let k = 0; k < enemies.length; k++) {
+                        const enemy = enemies[k];
+                        const dist = Math.sqrt(Math.pow(missile.x - enemy.x, 2) + Math.pow(missile.y - enemy.y, 2));
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestEnemy = enemy;
+                        }
+                    }
+                    if (closestEnemy) {
+                        missile.target = closestEnemy;
+                    } else { // Se não houver inimigos, apenas continua em frente
+                        missile.target = { x: missile.x + missile.vx * 100, y: missile.y + missile.vy * 100 };
+                    }
+                } else { // Se não houver inimigos, apenas continua em frente
+                    missile.target = { x: missile.x + missile.vx * 100, y: missile.y + missile.vy * 100 };
+                }
+
+
+                let dx = missile.target.x - missile.x;
+                let dy = missile.target.y - missile.y;
+                let angleToTarget = Math.atan2(dy, dx);
+
+                // Ajusta a velocidade para teleguiamento
+                missile.vx = (missile.vx + Math.cos(angleToTarget) * missile.homingStrength) * 0.95;
+                missile.vy = (missile.vy + Math.sin(angleToTarget) * missile.homingStrength) * 0.95;
+
+                let currentSpeed = Math.sqrt(missile.vx * missile.vx + missile.vy * missile.vy);
+                if (currentSpeed > missile.speed) {
+                    missile.vx = (missile.vx / currentSpeed) * missile.speed;
+                    missile.vy = (missile.vy / currentSpeed) * missile.speed;
+                }
+
+                missile.x += missile.vx;
+                missile.y += missile.vy;
+
+                // Desenha o míssil (pode ter um pequeno triângulo para parecer um míssil)
+                ctx.fillStyle = missile.color;
+                ctx.beginPath();
+                ctx.arc(missile.x, missile.y, missile.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (missile.x < -missile.radius || missile.x > GAME_WIDTH + missile.radius ||
+                    missile.y < -missile.radius || missile.y > GAME_HEIGHT + missile.radius) {
+                    missiles.splice(i, 1);
+                }
+            }
+        }
+
+
+        // --- Funções do Drone ---
+        function spawnDrone(x, y, side) {
+            drones.push({
+                x: x,
+                y: y,
+                width: 20,
+                height: 20,
+                color: 'aqua',
+                offset: side * 50,
+                lastShotTime: 0,
+                shotInterval: player.droneShotInterval
+            });
+        }
+
+        function drawDrone(drone) {
+            ctx.save();
+            ctx.translate(drone.x, drone.y);
+
+            ctx.fillStyle = drone.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, drone.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-drone.width / 2, 0);
+            ctx.lineTo(drone.width / 2, 0);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, -drone.height / 2);
+            ctx.lineTo(0, drone.height / 2);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        function updateDrones() {
+            const currentTime = Date.now();
+            if (player.isDroneActive) {
+                for (let i = drones.length - 1; i >= 0; i--) {
+                    let drone = drones[i];
+                    drone.x = player.x + drone.offset;
+                    drone.y = player.y + 20;
+
+                    if (enemies.length > 0 && (currentTime - drone.lastShotTime > drone.shotInterval)) {
+                        let closestEnemy = null;
+                        let minDist = Infinity;
+                        for(let k = 0; k < enemies.length; k++) {
+                            const enemy = enemies[k];
+                            const dist = Math.sqrt(Math.pow(drone.x - enemy.x, 2) + Math.pow(drone.y - enemy.y, 2));
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closestEnemy = enemy;
+                            }
+                        }
+                        if (closestEnemy) {
+                            shootPlayerBullet(drone.x, drone.y, closestEnemy.x, closestEnemy.y, true);
+                        }
+                        drone.lastShotTime = currentTime;
+                    }
+                    drawDrone(drone);
+                }
+            } else {
+                drones = [];
+            }
+        }
+
+        // --- Funções de Mina Espacial ---
+        function updateMines() {
+            const currentTime = Date.now();
+            for (let i = mines.length - 1; i >= 0; i--) {
+                let mine = mines[i];
+
+                mine.pulsing = (mine.pulsing + 0.1) % (Math.PI * 2);
+                let currentRadius = mine.radius + Math.sin(mine.pulsing) * 2;
+
+                ctx.fillStyle = mine.color;
+                ctx.beginPath();
+                ctx.arc(mine.x, mine.y, currentRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Lógica de explosão por tempo
+                if (currentTime - mine.spawnTime > mine.life) {
+                    createExplosion(mine.x, mine.y, 'orange');
+                    mines.splice(i, 1);
+                    continue;
+                }
+
+                // Colisão com inimigos (explosão por proximidade)
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let enemy = enemies[j];
+                    if (checkCollision({x: mine.x, y: mine.y, radius: mine.blastRadius},
+                                       {x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height})) {
+                        
+                        createExplosion(mine.x, mine.y, 'orange');
+                        
+                        // Causa dano no inimigo
+                        enemy.health -= mine.damage;
+                        if (enemy.health <= 0) {
+                            createExplosion(enemy.x, enemy.y, enemy.color);
+                            enemies.splice(j, 1);
+                            enemiesDestroyed++;
+                            score += enemy.points;
+                            checkAchievement('first_kill'); // Conquista
+                            if (enemiesDestroyed >= 10) checkAchievement('10_kills');
+                            if (enemiesDestroyed >= 50) checkAchievement('50_kills');
+                            if (enemiesDestroyed >= 100) checkAchievement('100_kills');
+                        }
+                        mines.splice(i, 1); // Mina explode após atingir um inimigo ou tempo
+                        break; // Sai do loop interno, pois a mina já explodiu
+                    }
+                }
+            }
+        }
+
+        // --- Asteroides ---
+        let asteroids = [];
+        function spawnAsteroid() {
+            const size = Math.random() * 30 + 20;
+            const speed = Math.random() * 2 + 1;
+            const angle = Math.random() * Math.PI * 2;
+            asteroids.push({
+                x: Math.random() * GAME_WIDTH,
+                y: -size,
+                radius: size / 2,
+                color: 'gray',
+                vx: Math.cos(angle) * speed * 0.5,
+                vy: Math.sin(angle) * speed + speed, // Principalmente para baixo
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.05
+            });
+        }
+
+        function drawAsteroid(asteroid) {
+            ctx.save();
+            ctx.translate(asteroid.x, asteroid.y);
+            ctx.rotate(asteroid.rotation);
+
+            ctx.fillStyle = asteroid.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, asteroid.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function updateAsteroids() {
+            // Chance de spawn de asteroides
+            if (Math.random() < 0.005) { // Ajuste para controlar a frequência
+                spawnAsteroid();
+            }
+
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                let asteroid = asteroids[i];
+                
+                let currentAsteroidSpeedX = asteroid.vx;
+                let currentAsteroidSpeedY = asteroid.vy;
+                if (player.isTimeWarpActive) { // Aplica lentidão se Time Warp ativo
+                    currentAsteroidSpeedX *= 0.3;
+                    currentAsteroidSpeedY *= 0.3;
+                }
+
+                asteroid.x += currentAsteroidSpeedX;
+                asteroid.y += currentAsteroidSpeedY;
+                asteroid.rotation += asteroid.rotationSpeed;
+
+                drawAsteroid(asteroid);
+
+                // Remover asteroides fora da tela
+                if (asteroid.y > GAME_HEIGHT + asteroid.radius || asteroid.x < -asteroid.radius || asteroid.x > GAME_WIDTH + asteroid.radius) {
+                    asteroids.splice(i, 1);
+                    continue;
+                }
+
+                // Colisão asteroide com jogador
+                if (checkCollision({x: asteroid.x, y: asteroid.y, radius: asteroid.radius},
+                                   {x: player.x - player.width / 2, y: player.y - player.height / 2, width: player.width, height: player.height})) {
+                    if (!player.isShieldActive) {
+                        player.lives--;
+                        createExplosion(player.x, player.y, 'red');
+                        if (player.lives <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                    createExplosion(asteroid.x, asteroid.y, 'gray');
+                    asteroids.splice(i, 1);
+                    continue;
+                }
+
+                // Colisão asteroide com inimigos
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let enemy = enemies[j];
+                    if (checkRectCollision(
+                        {x: asteroid.x - asteroid.radius, y: asteroid.y - asteroid.radius, width: asteroid.radius * 2, height: asteroid.radius * 2},
+                        {x: enemy.x - enemy.width/2, y: enemy.y - enemy.height/2, width: enemy.width, height: enemy.height}
+                    )) {
+                        createExplosion(enemy.x, enemy.y, enemy.color);
+                        enemies.splice(j, 1);
+                        enemiesDestroyed++;
+                        score += enemy.points;
+                        createExplosion(asteroid.x, asteroid.y, 'gray');
+                        asteroids.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        // --- Detecção de Colisões ---
+
+        function checkCollision(circle, rect) {
+            let testX = circle.x;
+            let testY = circle.y;
+
+            if (circle.x < rect.x - rect.width / 2) testX = rect.x - rect.width / 2;
+            else if (circle.x > rect.x + rect.width / 2) testX = rect.x + rect.width / 2;
+            if (circle.y < rect.y - rect.height / 2) testY = rect.y - rect.height / 2;
+            else if (circle.y > rect.y + rect.height / 2) testY = rect.y + rect.height / 2;
+
+            let distX = circle.x - testX;
+            let distY = circle.y - testY;
+            let distance = Math.sqrt((distX * distX) + (distY * distY));
+
+            return distance <= circle.radius;
+        }
+
+        function checkRectCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function handleCollisions() {
+            // Colisão Tiros do Jogador vs Inimigos
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                let bullet = playerBullets[i];
+                let bulletHit = false;
+
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let enemy = enemies[j];
+                    // Ignora inimigos invisíveis do Stealth Drone
+                    if (enemy.type === 'stealth' && !enemy.isVisible) continue;
+
+                    if (checkCollision({x: bullet.x, y: bullet.y, radius: bullet.radius}, {x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height})) {
+                        if (bullet.isPiercing && bullet.hits.includes(enemy)) {
+                            // Se a bala é perfurante e já atingiu este inimigo, pule.
+                            continue;
+                        }
+
+                        // Aplica dano ao inimigo
+                        enemy.health--;
+                        if (bullet.isPiercing) {
+                            bullet.hits.push(enemy); // Marca o inimigo como atingido por esta bala
+                        }
+
+                        if (enemy.health <= 0) {
+                            createExplosion(enemy.x, enemy.y, enemy.color);
+                            // Lógica para Splitter
+                            if (enemy.type === 'splitter') {
+                                for (let k = 0; k < 2; k++) { // Cria 2 naves menores
+                                    spawnEnemy('standard', enemy.x + (Math.random() - 0.5) * 20, enemy.y + (Math.random() - 0.5) * 20);
+                                }
+                            }
+                            enemies.splice(j, 1);
+                            enemiesDestroyed++;
+                            score += enemy.points;
+                            checkAchievement('first_kill'); // Conquista
+                            if (enemiesDestroyed >= 10) checkAchievement('10_kills');
+                            if (enemiesDestroyed >= 50) checkAchievement('50_kills');
+                            if (enemiesDestroyed >= 100) checkAchievement('100_kills');
+                        } else {
+                            // Inimigo sobreviveu, cria pequena explosão de impacto
+                            createExplosion(bullet.x, bullet.y, 'lightgray');
+                        }
+
+                        if (!bullet.isPiercing) { // Se não é perfurante, remove a bala após o primeiro hit
+                            bulletHit = true;
+                            break; // Sai do loop de inimigos, bala removida
+                        }
+                    }
+                }
+                if (bulletHit) {
+                    playerBullets.splice(i, 1);
+                }
+            }
+
+            // Colisão Tiros do Jogador vs Boss
+            if (activeBoss) {
+                for (let i = playerBullets.length - 1; i >= 0; i--) {
+                    let bullet = playerBullets[i];
+                    if (checkCollision({x: bullet.x, y: bullet.y, radius: bullet.radius}, {x: activeBoss.x, y: activeBoss.y, width: activeBoss.width, height: activeBoss.height})) {
+                        activeBoss.health--;
+                        createExplosion(bullet.x, bullet.y, 'white');
+                        if (activeBoss.health <= 0) {
+                            createExplosion(activeBoss.x, activeBoss.y, 'gold');
+                            score += activeBoss.points;
+                            bossKills++;
+                            checkAchievement('first_boss_kill');
+                            activeBoss = null; // Destrói o boss
+                        }
+                        if (!bullet.isPiercing) {
+                            playerBullets.splice(i, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Colisão Tiros Inimigos vs Jogador
+            if (player.lives > 0 && gameRunning) {
+                for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                    let bullet = enemyBullets[i];
+                    if (checkCollision({x: bullet.x, y: bullet.y, radius: bullet.radius},
+                                       {x: player.x - player.width / 2, y: player.y - player.height / 2, width: player.width, height: player.height})) {
+                        enemyBullets.splice(i, 1);
+                        if (!player.isShieldActive) {
+                            player.lives -= bullet.damage; // Dano variável
+                            createExplosion(player.x, player.y, 'red');
+                            lastDamageTime = Date.now(); // Conquista: resetar tempo sem dano
+                            console.log(`Você foi atingido! Vidas restantes: ${player.lives}`);
+                            if (player.lives <= 0) {
+                                gameOver();
+                                return;
+                            }
+                        } else {
+                            console.log("Tiro inimigo bloqueado pelo escudo!");
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Colisão Inimigo vs Jogador
+            if (player.lives > 0 && gameRunning) {
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    let enemy = enemies[i];
+                    // Ignora inimigos invisíveis do Stealth Drone
+                    if (enemy.type === 'stealth' && !enemy.isVisible) continue;
+
+                    if (checkRectCollision(
+                        {x: player.x - player.width/2, y: player.y - player.height/2, width: player.width, height: player.height},
+                        {x: enemy.x - enemy.width/2, y: enemy.y - enemy.height/2, width: enemy.width, height: enemy.height}
+                    )) {
+                        createExplosion(enemy.x, enemy.y, enemy.color);
+                        // Lógica para Splitter
+                        if (enemy.type === 'splitter') {
+                            for (let k = 0; k < 2; k++) { // Cria 2 naves menores
+                                spawnEnemy('standard', enemy.x + (Math.random() - 0.5) * 20, enemy.y + (Math.random() - 0.5) * 20);
+                            }
+                        }
+                        enemies.splice(i, 1);
+
+                        if (!player.isShieldActive) {
+                            player.lives--;
+                            createExplosion(player.x, player.y, 'red');
+                            lastDamageTime = Date.now(); // Conquista: resetar tempo sem dano
+                            console.log(`Colisão com inimigo! Vidas restantes: ${player.lives}`);
+                            if (player.lives <= 0) {
+                                gameOver();
+                                return;
+                            }
+                        } else {
+                            console.log("Colisão inimiga bloqueada pelo escudo!");
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Colisão Mísseis (Barrage) vs Inimigos
+            for (let i = missiles.length - 1; i >= 0; i--) {
+                let missile = missiles[i];
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let enemy = enemies[j];
+                    if (checkCollision({x: missile.x, y: missile.y, radius: missile.radius}, {x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height})) {
+                        createExplosion(enemy.x, enemy.y, enemy.color);
+                        enemies.splice(j, 1);
+                        enemiesDestroyed++;
+                        score += enemy.points;
+                        missiles.splice(i, 1);
+                        checkAchievement('first_kill'); // Conquista
+                        if (enemiesDestroyed >= 10) checkAchievement('10_kills');
+                        if (enemiesDestroyed >= 50) checkAchievement('50_kills');
+                        if (enemiesDestroyed >= 100) checkAchievement('100_kills');
+                        break; // Míssil acertou, remove e vai para o próximo míssil
+                    }
+                }
+                // Colisão Mísseis (Barrage) vs Boss
+                if (activeBoss && checkCollision({x: missile.x, y: missile.y, radius: missile.radius}, {x: activeBoss.x, y: activeBoss.y, width: activeBoss.width, height: activeBoss.height})) {
+                    activeBoss.health--;
+                    createExplosion(missile.x, missile.y, 'white');
+                    if (activeBoss.health <= 0) {
+                        createExplosion(activeBoss.x, activeBoss.y, 'gold');
+                        score += activeBoss.points;
+                        bossKills++;
+                        checkAchievement('first_boss_kill');
+                        activeBoss = null;
+                    }
+                    missiles.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        // --- Funções de Estado do Jogo ---
+
+        function checkDifficultyLevel() {
+            if (score < 200) {
+                difficultyLevel = 1;
+            } else if (score < 700) {
+                difficultyLevel = 2;
+            } else if (score < 1500) {
+                difficultyLevel = 3;
+            } else {
+                difficultyLevel = 4; // Dificuldade máxima com inimigos mais variados
+            }
+        }
+
+        function checkLifeGain() {
+            if (score >= lastLifeGainScore + LIFE_GAIN_SCORE_INTERVAL) {
+                player.lives++;
+                lastLifeGainScore = Math.floor(score / LIFE_GAIN_SCORE_INTERVAL) * LIFE_GAIN_SCORE_INTERVAL;
+                console.log("Vida extra ganha! Vidas: " + player.lives);
+            }
+        }
+
+        function checkPowerUpDrop() {
+            if (score > 0 && score % POWER_UP_DROP_INTERVAL === 0 && score !== lastPowerUpDropScore) {
+                let dropX = Math.random() * (GAME_WIDTH - 40) + 20;
+                let dropY = Math.random() * (GAME_HEIGHT - 40) + 20;
+                // Chance de super power-up em dificuldades maiores
+                if (difficultyLevel >= 3 && Math.random() < 0.1) {
+                    dropPowerUp(dropX, dropY, 'super_power_up');
+                } else {
+                    dropPowerUp(dropX, dropY);
+                }
+                lastPowerUpDropScore = score;
+            }
+        }
+        //para fazer correções no codigo geral verifique a pesquisa 
+        // Eventos Aleatórios
+        let lastRandomEventTime = 0;
+        const RANDOM_EVENT_INTERVAL = 30000; // A cada 30 segundos
+        function triggerRandomEvent() {
+            const currentTime = Date.now();
+            if (gameRunning && currentTime - lastRandomEventTime > RANDOM_EVENT_INTERVAL) {
+                lastRandomEventTime = currentTime;
+                const eventType = Math.floor(Math.random() * 3); // 0: Invasão, 1: Nuvem, 2: Queda Super Power-Up
+
+                switch (eventType) {
+                    case 0: // Invasão Aumentada
+                        console.log("Evento: INVASÃO AUMENTADA!");
+                        for (let i = 0; i < 10; i++) {
+                            setTimeout(() => spawnEnemy(), Math.random() * 500);
+                        }
+                        break;
+                    case 1: // Nuvem de Gás (não implementada graficamente ainda, apenas efeito)
+                        console.log("Evento: NUVEM DE GÁS! Movimento do jogador reduzido temporariamente.");
+                        let originalPlayerSpeed = PLAYER_SPEED;
+                        // player.speedMultiplier = 0.5; // Exemplo de lentidão
+                        // setTimeout(() => { player.speedMultiplier = 1; }, 5000);
+                        break;
+                    case 2: // Queda de Super Power-Up
+                        console.log("Evento: SUPER POWER-UP APARECEU!");
+                        dropPowerUp(Math.random() * GAME_WIDTH, Math.random() * GAME_HEIGHT, 'super_power_up');
+                        break;
+                }
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            console.log("GAME OVER!");
+
+            // Verifica e atualiza o recorde
+            if (score > highScore.score) {
+                highScore.score = score;
+                highScore.player = currentPlayerName;
+                saveHighScore();
+                updateHighScoreDisplay();
+            }
+
+            finalKillsDisplay.textContent = enemiesDestroyed;
+            finalScoreDisplay.textContent = score;
+            gameOverMenu.style.display = 'block';
+        }
+
+        function resetGame() {
+            player = {
+                x: GAME_WIDTH / 2,
+                y: GAME_HEIGHT / 2,
+                width: 40,
+                height: 50,
+                lives: 5,
+                isShieldActive: false,
+                shieldDuration: 5000,
+                shieldCooldown: 10000,
+                lastShieldActivationTime: 0,
+                shieldActivationTimer: null,
+                isAutoShotActive: false,
+                autoShotDuration: 3000,
+                autoShotTimer: null,
+                isDroneActive: false,
+                droneCooldown: 90,
+                lastDroneActivationScore: 0,
+                droneShotInterval: 300,
+                isHackActive: false,
+                hackShotsRemaining: 0,
+                currentAngle: -Math.PI / 2,
+                lastMoveTime: 0,
+                hasMineAbility: false,
+                mineCooldown: 5000,
+                lastMineTime: 0,
+                isTimeWarpActive: false,
+                timeWarpDuration: 3000,
+                timeWarpTimer: null,
+                isPiercingShotActive: false,
+                piercingShotDuration: 5000,
+                piercingShotTimer: null,
+                hasMissileBarrage: false,
+            };
+            keys = { w: false, a: false, s: false, d: false, e: false, q: false, m: false };
+            mouse = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, isFiring: false, lastShotTime: 0, fireRate: 200 };
+
+            playerBullets = [];
+            enemies = [];
+            enemyBullets = [];
+            explosions = [];
+            shrapnelParticles = [];
+            lifePickups = [];
+            powerUps = [];
+            stars = [];
+            exhaustParticles = [];
+            drones = [];
+            mines = [];
+            asteroids = [];
+            missiles = [];
+
+            enemiesDestroyed = 0;
+            score = 0;
+            difficultyLevel = 1;
+            lastLifeGainScore = 0;
+            lastPowerUpDropScore = 0;
+            activeBoss = null;
+            bossKills = 0;
+            bossSpawnInterval = 10000;
+            lastBossSpawnTime = 0;
+
+            shieldActivations = 0; // Resetar para conquistas
+            gameStartTime = Date.now();
+            lastDamageTime = Date.now();
+
+            gameOverMenu.style.display = 'none';
+            lastEnemySpawnTime = Date.now();
+            initStars();
+        }
+
+        // --- Loop Principal do Jogo ---
+        function gameLoop(currentTime) {
+            if (!gameRunning) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            const deltaTime = currentTime - lastTime;
+
+            if (deltaTime >= FRAME_INTERVAL) {
+                lastTime = currentTime - (deltaTime % FRAME_INTERVAL);
+
+                drawStars();
+
+                updatePlayer();
+                updatePlayerBullets();
+                updateEnemies();
+                updateEnemyBullets();
+                updateExplosions();
+                updateShrapnelParticles();
+                updateLifePickups();
+                updatePowerUps();
+                updateExhaustParticles();
+                updateDrones();
+                updateMines(); // NOVO: Minas
+                updateAsteroids(); // NOVO: Asteroides
+                updateMissiles(); // NOVO: Mísseis de Barragem
+                handleCollisions();
+                updateHUD();
+
+                drawPlayer();
+
+                checkDifficultyLevel();
+                checkLifeGain();
+                checkPowerUpDrop();
+                triggerRandomEvent(); // NOVO: Eventos aleatórios
+
+                // Conquista: Sobreviver sem dano
+                if (currentTime - gameStartTime > 60000 && currentTime - lastDamageTime > 60000) {
+                    checkAchievement('no_damage_1min');
+                }
+                // Conquistas de Score
+                if (score >= 500) checkAchievement('score_500');
+                if (score >= 1000) checkAchievement('score_1000');
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Eventos de Entrada ---
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning && !startMenu.style.display && !abilitiesMenu.style.display && !achievementsMenu.style.display && e.key.toLowerCase() !== 'enter') return; // Bloqueia input antes de iniciar, exceto enter para o input de nome
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) {
+                keys[key] = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) {
+                keys[key] = false;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && gameRunning) {
+                mouse.isFiring = true;
+                // Tiro manual com foco em inimigo se hack ativo, senão mira do mouse
+                if (enemies.length > 0) {
+                     let targetX = mouse.x;
+                     let targetY = mouse.y;
+                     if (player.isHackActive) {
+                         let closestEnemy = null;
+                         let minDist = Infinity;
+                         for(let i = 0; i < enemies.length; i++) {
+                             const enemy = enemies[i];
+                             const dist = Math.sqrt(Math.pow(player.x - enemy.x, 2) + Math.pow(player.y - enemy.y, 2));
+                             if (dist < minDist) {
+                                 minDist = dist;
+                                 closestEnemy = enemy;
+                             }
+                         }
+                         if (closestEnemy) {
+                             targetX = closestEnemy.x;
+                             targetY = closestEnemy.y;
+                         }
+                     }
+                     shootPlayerBullet(player.x, player.y, targetX, targetY);
+                } else {
+                    shootPlayerBullet(player.x, player.y, mouse.x, mouse.y);
+                }
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 0) {
+                mouse.isFiring = false;
+            }
+        });
+
+        setInterval(() => {
+            if ((mouse.isFiring || player.isAutoShotActive) && player.lives > 0 && gameRunning) {
+                 if (enemies.length > 0) {
+                     let targetX = mouse.x;
+                     let targetY = mouse.y;
+                     if (player.isHackActive) {
+                         let closestEnemy = null;
+                         let minDist = Infinity;
+                         for(let i = 0; i < enemies.length; i++) {
+                             const enemy = enemies[i];
+                             const dist = Math.sqrt(Math.pow(player.x - enemy.x, 2) + Math.pow(player.y - enemy.y, 2));
+                             if (dist < minDist) {
+                                 minDist = dist;
+                                 closestEnemy = enemy;
+                             }
+                         }
+                         if (closestEnemy) {
+                             targetX = closestEnemy.x;
+                             targetY = closestEnemy.y;
+                         }
+                     }
+                     shootPlayerBullet(player.x, player.y, targetX, targetY);
+                 } else {
+                     shootPlayerBullet(player.x, player.y, mouse.x, mouse.y);
+                 }
+            }
+        }, mouse.fireRate);
+
+        restartButton.addEventListener('click', () => {
+            resetGame();
+            gameRunning = true;
+        });
+
+        quitButton.addEventListener('click', () => {
+            alert("Obrigado por jogar! :)");
+            // window.location.href = "about:blank"; // Para fechar a aba, se permitido pelo navegador
+        });
+
+        // --- Gerenciamento de Menus ---
+        function hideAllMenus() {
+            startMenu.style.display = 'none';
+            gameOverMenu.style.display = 'none';
+            abilitiesMenu.style.display = 'none';
+            achievementsMenu.style.display = 'none';
+        }
+
+        function showStartMenu() {
+            hideAllMenus();
+            startMenu.style.display = 'block';
+        }
+
+        function showAbilitiesMenu() {
+            hideAllMenus();
+            abilitiesMenu.style.display = 'block';
+        }
+
+        function showAchievementsMenu() {
+            hideAllMenus();
+            achievementsMenu.style.display = 'block';
+            updateAchievementsDisplay(); // Garante que a lista esteja atualizada
+        }
+
+        // Listeners para abrir menus
+        abilitiesButton.addEventListener('click', showAbilitiesMenu);
+        closeAbilitiesButton.addEventListener('click', () => {
+            if (gameRunning) {
+                hideAllMenus(); // Se o jogo estiver rodando, volta para o jogo
+            } else if (gameOverMenu.style.display === 'block') { // Se estava no game over
+                showGameOverMenu(); // Volta para o menu de game over
+            } else { // Se estava no start menu
+                showStartMenu();
+            }
+        });
+
+        viewAbilitiesStartButton.addEventListener('click', showAbilitiesMenu);
+        viewAbilitiesGameOverButton.addEventListener('click', showAbilitiesMenu);
+
+        achievementsButton.addEventListener('click', showAchievementsMenu);
+        closeAchievementsButton.addEventListener('click', () => {
+            if (gameRunning) {
+                hideAllMenus();
+            } else if (gameOverMenu.style.display === 'block') {
+                showGameOverMenu();
+            } else {
+                showStartMenu();
+            }
+        });
+        viewAchievementsStartButton.addEventListener('click', showAchievementsMenu);
+        viewAchievementsGameOverButton.addEventListener('click', showAchievementsMenu);
+
+
+        function showGameOverMenu() { // Função auxiliar para voltar ao Game Over
+            hideAllMenus();
+            gameOverMenu.style.display = 'block';
+        }
+
+        // --- Menu de Início e Nome do Jogador ---
+        startButton.addEventListener('click', startGame);
+        playerNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                startGame();
+            }
+        });
+
+        function startGame() {
+            const name = playerNameInput.value.trim();
+            if (name) {
+                currentPlayerName = name;
+            } else {
+                currentPlayerName = "Jogador Anônimo"; // Nome padrão se vazio
+            }
+            hideAllMenus(); // Esconde o menu de início
+            gameRunning = true; // Inicia o loop do jogo
+            lastEnemySpawnTime = Date.now(); // Reseta o timer de spawn
+            gameStartTime = Date.now(); // Conquista: Inicia o timer de jogo
+            lastDamageTime = Date.now(); // Conquista: Reseta timer de dano
+            console.log(`Jogo iniciado por: ${currentPlayerName}`);
+            initStars(); // Garante que as estrelas sejam criadas para a tela cheia
+            resetGame(); // Reinicia o estado do jogo para a primeira partida
+        }
+
+        // Inicialização do Jogo
+        loadHighScore(); // Carrega o recorde ao iniciar
+        loadAchievements(); // Carrega as conquistas
+        showStartMenu(); // Mostra o menu de início
+        gameLoop(); // Inicia o loop para manter o canvas limpo e esperar o startGame
+    </script>
+</body>
+</html>
