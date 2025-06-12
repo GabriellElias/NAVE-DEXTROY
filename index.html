@@ -270,7 +270,7 @@
             text-shadow: 0 0 20px #00ff00, 0 0 30px rgba(0, 255, 0, 0.7);
         }
 
-        /* Bottom Bar Menu */
+        /* Bottom Bar Menu - Desktop Styles */
         #bottom-bar-menu {
             position: absolute;
             bottom: 8px;
@@ -278,19 +278,19 @@
             transform: translateX(-50%);
             z-index: 10;
             background: rgba(0, 0, 0, 0.8);
-            padding: 1px 2px; /* Further reduced padding */
+            padding: 4px 6px; /* Reduced padding for more compactness */
             border-radius: 10px;
             border: 2px solid rgba(0, 255, 0, 0.5);
             box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap; /* Prevent wrapping on desktop */
             justify-content: center;
             align-items: center;
-            gap: 2px 1px; /* Further reduced gap */
+            gap: 6px 4px; /* Reduced gap between items */
             font-family: 'Share Tech Mono', monospace;
             color: #E0E0E0;
             display: none;
-            max-width: 98%; /* Ensure it doesn't exceed screen width */
+            max-width: 98%; 
             height: auto;
         }
 
@@ -299,14 +299,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 30px; /* Further reduced min-width */
-            height: 30px; /* Further reduced height */
-            padding: 1px; /* Further reduced padding */
+            min-width: 50px; /* Reduced min-width for more compactness */
+            height: 40px; /* Reduced height for more compactness */
+            padding: 3px; /* Reduced padding */
             border: 1px solid rgba(0, 255, 0, 0.2);
             border-radius: 6px;
             background-color: rgba(0, 0, 0, 0.3);
             box-shadow: inset 0 0 3px rgba(0, 255, 0, 0.1);
-            font-size: 0.7em;
+            font-size: 0.8em; /* Reduced font size */
             text-align: center;
             transition: background-color 0.2s ease, transform 0.1s ease;
         }
@@ -317,23 +317,23 @@
         }
 
         .menu-item .label {
-            font-size: 0.5em; /* Further reduced label font size */
+            font-size: 0.6em; /* Reduced label font size */
             color: #999;
-            margin-bottom: 1px;
+            margin-bottom: 1px; /* Reduced margin */
             white-space: nowrap;
         }
 
         .menu-item span:not(.label) {
             font-weight: bold;
             color: #0f0;
-            font-size: 0.7em; /* Further reduced value font size */
+            font-size: 0.9em; /* Reduced value font size */
             white-space: nowrap;
         }
 
         .menu-item svg {
-            margin-bottom: 1px;
-            width: 14px; /* Further reduced icon size */
-            height: 14px; /* Further reduced icon size */
+            margin-bottom: 1px; /* Reduced margin */
+            width: 16px; /* Reduced icon size */
+            height: 16px; /* Reduced icon size */
         }
 
         /* Specific styles for ability/power-up status */
@@ -349,7 +349,7 @@
         }
         .recharging {
             color: #ffaa00;
-            font-size: 0.7em !important;
+            font-size: 0.8em !important; /* Adjusted for new font size */
         }
         .not-ready {
             color: #888;
@@ -357,9 +357,9 @@
         
         .missile-display {
             display: inline-block;
-            margin: 0 1px;
+            margin: 0 1px; /* Adjusted margin */
             font-weight: normal;
-            font-size: 0.7em;
+            font-size: 0.8em; /* Adjusted font size */
         }
         .missile-display.ready {
             color: #00ff00;
@@ -484,6 +484,37 @@
             }
             canvas {
                 cursor: default;
+            }
+            /* Revert #bottom-bar-menu styles for mobile */
+            #bottom-bar-menu {
+                padding: 1px 2px;
+                gap: 2px 1px;
+                flex-wrap: wrap; /* Allow wrapping on mobile */
+            }
+            .menu-item {
+                min-width: 30px;
+                height: 30px;
+                padding: 1px;
+                font-size: 0.7em;
+            }
+            .menu-item .label {
+                font-size: 0.5em;
+                margin-bottom: 1px;
+            }
+            .menu-item span:not(.label) {
+                font-size: 0.7em;
+            }
+            .menu-item svg {
+                width: 14px;
+                height: 14px;
+                margin-bottom: 1px;
+            }
+            .recharging {
+                font-size: 0.7em !important;
+            }
+            .missile-display {
+                margin: 0 1px;
+                font-size: 0.7em;
             }
         }
 
@@ -947,7 +978,7 @@
         let scoreMultiplierTimer = 0; 
         let lastScoreMultiplierActivation = -Infinity; // For cooldown of multiplier
         const SCORE_MULTIPLIER_DURATION = 10000; // 10 seconds
-        const GAME_SCORE_MULTIPLIER_AMOUNT = 10; // Multiplies by 10
+        const GAME_SCORE_MULTIPLIER_AMOUNT = 2; // Multiplies by 2 (changed from 10 to 2)
         const SCORE_MULTIPLIER_COOLDOWN = 30000; // 30 seconds cooldown
 
         let nextBossSpawnScore = 10000; 
@@ -1070,11 +1101,10 @@
             },
             'boss': {
                 size: 70, speed: { min: 40, max: 80 }, hp: 1000, score: 500 * 2, droneCharge: 100,
-                color: '#FFD700', detailColor: '#FFFF00', shootMultiple: 5, bulletColor: '#FF0000', isBoss: true, isElite: false,
-                bulletSpeed: 280, 
+                color: '#FFD700', detailColor: '#FFFF00', shootMultiple: 8, bulletColor: '#FF0000', isBoss: true, isElite: false, 
+                bulletSpeed: 280, explosiveBullets: true, explosionDamage: 5, /* Boss bullets now explode */
                 bulletCooldownMin: 300, bulletCooldownMax: 800,
                 maxBossDrones: 3, bossDroneSpawnCooldown: 10000,
-                explosionDamage: 0
             },
             'disruptor': {
                 size: 20, speed: { min: 160, max: 280 }, hp: 40, score: 18 * 2, droneCharge: 18,
@@ -1084,7 +1114,7 @@
             'heavy_shooter': {
                 size: 45, speed: { min: 40, max: 100 }, hp: 180, score: 28 * 2, droneCharge: 28,
                 color: '#556B2F', detailColor: '#8FBC8F', shootMultiple: 3, bulletColor: '#FF0000', isBoss: false, isElite: false,
-                bulletCooldownMin: 1500, bulletCooldownMax: 3000, explosiveBullets: true, explosionDamage: 0
+                bulletCooldownMin: 1500, bulletCooldownMax: 3000, explosiveBullets: true, explosionDamage: 2 /* Explosion damage for heavy shooter */
             },
             'exploder': {
                 size: 35, speed: { min: 200, max: 360 }, hp: 70, score: 22 * 2, droneCharge: 22,
@@ -1772,6 +1802,8 @@
                 this.isBoss = baseConfig.isBoss;
                 this.isElite = baseConfig.isElite;
                 this.explosionDamage = baseConfig.explosionDamage;
+                this.explosiveBullets = baseConfig.explosiveBullets || false; // Added for boss and heavy_shooter
+                this.bulletDamage = baseConfig.bulletDamage || 0; // Base damage for explosive bullets
 
                 this.speed = (Math.random() * (baseConfig.speed.max - baseConfig.speed.min) + baseConfig.speed.min) * currentSpeedMultiplier;
                 
@@ -2102,6 +2134,8 @@
 
                 if (player && currentTime - this.lastShotTime > this.shotCooldown && this.shootMultiple > 0) {
                     const bulletSpeed = this.isBoss ? ENEMY_BASE_TYPES['boss'].bulletSpeed : ENEMY_BULLET_SPEED;
+                    const bulletExplosionRadius = this.isExplosive ? (this.isBoss ? 50 : 40) : 0; // Boss has larger explosion
+                    const bulletDamage = this.isExplosive ? (this.isBoss ? ENEMY_BASE_TYPES.boss.explosionDamage : ENEMY_BASE_TYPES.heavy_shooter.explosionDamage) : 0; // Damage for explosive bullets
 
                     if (this.type === 'elite' && ENEMY_BASE_TYPES['elite'].hasMissile) {
                         const missileDamagePercent = Math.random() * (ENEMY_ELITE_MISSILE_DAMAGE_MAX - ENEMY_ELITE_MISSILE_DAMAGE_MIN) + ENEMY_ELITE_MISSILE_DAMAGE_MIN;
@@ -2115,7 +2149,7 @@
                     } else if (this.shootMultiple === 1) {
                         enemyBullets.push(new Bullet(this.x + this.width / 2, this.y + this.height / 2,
                                                      player.x + player.width / 2, player.y + player.height / 2,
-                                                     bulletSpeed, this.bulletColor, false));
+                                                     bulletSpeed, this.bulletColor, false, false, this.explosiveBullets, 0, bulletExplosionRadius, bulletDamage));
                     }
                     else if (this.shootMultiple === 3) {
                         const targetAngle = Math.atan2(player.y + player.height / 2 - (this.y + this.height / 2),
@@ -2126,16 +2160,16 @@
                             enemyBullets.push(new Bullet(this.x + this.width / 2, this.y + this.height / 2,
                                                          this.x + this.width / 2 + Math.cos(angle) * 100,
                                                          this.y + Math.sin(angle) * 100,
-                                                         bulletSpeed, this.bulletColor, false, false, this.type === 'heavy_shooter' ? true : false, 0, 40)); 
+                                                         bulletSpeed, this.bulletColor, false, false, this.explosiveBullets, 0, bulletExplosionRadius, bulletDamage)); 
                         }
-                    } else if (this.shootMultiple === 5 && this.isBoss) { 
-                        const angleStep = Math.PI * 2 / 5;
-                        for (let i = 0; i < 5; i++) {
+                    } else if (this.shootMultiple === 8 && this.isBoss) { 
+                        const angleStep = Math.PI * 2 / 8;
+                        for (let i = 0; i < 8; i++) {
                             const angle = i * angleStep + performance.now() * 0.0005;
                             enemyBullets.push(new Bullet(this.x + this.width / 2, this.y + this.height / 2,
                                                          this.x + this.width / 2 + Math.cos(angle) * 100,
                                                          this.y + Math.sin(angle) * 100,
-                                                         bulletSpeed, this.bulletColor, false));
+                                                         bulletSpeed, this.bulletColor, false, false, this.explosiveBullets, 0, bulletExplosionRadius, bulletDamage));
                         }
                     }
                     this.lastShotTime = currentTime;
@@ -2993,6 +3027,18 @@
             enemies.push(new Enemy('boss', 1 + (currentWave * 0.05), 1 + (currentWave * 0.1)));
             bossActive = true;
             console.log(`Boss of wave ${currentWave} spawned!`);
+
+            // Spawn 30 missile-shooting elite enemies
+            for (let i = 0; i < 30; i++) {
+                enemies.push(new Enemy('elite', 1, 1)); 
+            }
+            console.log("30 elite missile-shooting enemies spawned with the boss!");
+
+            // Spawn 30 explosive-shooting heavy_shooter enemies
+            for (let i = 0; i < 30; i++) {
+                enemies.push(new Enemy('heavy_shooter', 1, 1)); 
+            }
+            console.log("30 heavy_shooter explosive-shooting enemies spawned with the boss!");
         }
 
 
@@ -3452,7 +3498,7 @@
                 if (player && checkCollision(bullet, player)) {
                     if (bullet.isExplosive) { 
                         createExplosion(bullet.x, bullet.y, bullet.color, 15, 300, 2, 1.5, 4); 
-                        player.takeDamage(2); 
+                        player.takeDamage(bullet.damageAmount); // Use bullet's specific damage for explosive
                     } else if (bullet.isDebuff) { 
                         playerBulletCooldownSlowed = true;
                         playerBulletCooldownSlowedTimer = currentRealTime;
